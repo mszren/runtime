@@ -1,0 +1,382 @@
+//
+//  GoodsDetailService.m
+//  Common
+//
+//  Created by zhouwengang on 15/5/23.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "ShopsService.h"
+#import "GoodsModel.h"
+#import "OrderModel.h"
+#import "TribeModel.h"
+#import "CommentModel.h"
+#import "TribeCategoryModel.h"
+#import "ShopAPI.h"
+#import "MsgListModel.h"
+
+static ShopsService* shop;
+@implementation ShopsService
++ (instancetype)shareInstance
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        shop = [[self alloc] init];
+    });
+    return shop;
+}
+
+/**
+ *  商品详情
+ *
+ *  @param goodId    商品id
+ *  @param userId    用户id
+ *  @param onSuccess 回调参数
+ */
+- (ASIHTTPRequest*)getGoodsInfoV2:(NSInteger)goodId userId:(NSInteger)userId OnSuccess:(onSuccess)onSuccess
+{
+
+    return [ShopAPI getGoodsInfoV2:goodId
+                            userId:userId
+                          callback:^(DataModel* dataModel) {
+
+                              if (dataModel.code == 200) {
+                                  dataModel.data = [GoodsModel JsonParse:[dataModel.data objectAtIndex:0]];
+                              }
+                              onSuccess(dataModel);
+                          }];
+}
+
+/**
+ *  附近的商家
+ *
+ *  @param mapX       经度
+ *  @param mapY       纬度
+ *  @param nextCursor 游标
+ *  @param onSuccess  回调参数
+ */
+
+- (ASIHTTPRequest*)getNearTribeGoodsList:(NSString*)shopName shoptypes:(NSString *)types nextCursor:(NSInteger)nextCursor mapX:(NSString*)mapX mapY:(NSString*)mapY OnSuccess:(onSuccess)onSuccess;
+{
+    return [ShopAPI getNearTribeGoodsList:shopName
+                                     type:types
+                               nextcursor:nextCursor
+                                     mapx:mapX
+                                     mapy:mapY
+                                 callback:^(DataModel* dataModel) {
+                                     NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                     for (id data in dataModel.data) {
+                                         [dataArry addObject:[TribeModel JsonParse:data]];
+                                     }
+                                     dataModel.data = dataArry;
+                                     onSuccess(dataModel);
+                                 }];
+}
+
+/**
+ *  推荐的商家
+ *
+ *  @param mapX       经度
+ *  @param mapY       纬度
+ *  @param nextCursor 游标
+ *  @param onSuccess  回调参数
+ */
+- (ASIHTTPRequest*)getRecommendTribeGoodsList:(NSString*)shopName shoptypes:(NSString *)types nextCursor:(NSInteger)nextCursor mapX:(NSString*)mapX mapY:(NSString*)mapY OnSuccess:(onSuccess)onSuccess;
+{
+    return [ShopAPI getRecommendTribeGoodsList:shopName
+                                          type:types
+                                    nextcursor:nextCursor
+                                          mapx:mapX
+                                          mapy:mapY
+                                      callback:^(DataModel* dataModel) {
+                                          NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                          for (id data in dataModel.data) {
+                                              [dataArry addObject:[TribeModel JsonParse:data]];
+                                          }
+                                          dataModel.data = dataArry;
+                                          onSuccess(dataModel);
+                                      }];
+}
+
+/**
+ *  商家首页
+ *
+ *  @param shopName   帮名
+ *  @param types      帮类型
+ *  @param nextCursor 游标
+ *  @param mapX       经度
+ *  @param mapY       纬度
+ *  @param onSuccess
+ */
+- (ASIHTTPRequest*)getTribeGoodsList:(NSString*)shopName shoptypes:(NSString *)types nextCursor:(NSInteger)nextCursor mapX:(NSString*)mapX mapY:(NSString*)mapY OnSuccess:(onSuccess)onSuccess;
+{
+    return [ShopAPI getTribeGoodsList:shopName
+                                 type:types
+                           nextcursor:nextCursor
+                                 mapx:mapX
+                                 mapy:mapY
+                             callback:^(DataModel* dataModel) {
+                                 NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                 for (id data in dataModel.data) {
+                                     [dataArry addObject:[TribeModel JsonParse:data]];
+                                 }
+                                 dataModel.data = dataArry;
+                                 onSuccess(dataModel);
+                             }];
+}
+
+//添加评论
+/**
+ *  添加评论
+ *
+ *  @param objectId  对象id
+ *  @param type      类型
+ *  @param content   评论内容
+ *  @param userId    用户id
+ *  @param starNum   星数
+ *  @param parentId  父级评论id
+ *  @param imageUrls 图片路径
+ *  @param shopId    商铺id
+ *  @param orderId   订单id
+ *  @param callback  回调参数
+ */
+- (ASIHTTPRequest*)addOneCommentInfoV2:(NSInteger)objectId type:(NSInteger)type content:(NSString*)content userId:(NSInteger)userId starNum:(NSInteger)starNum parentId:(NSInteger)parentId imageUrls:(NSString*)imageUrls shopId:(NSInteger)shopId orderId:(NSInteger)orderId OnSuccess:(onSuccess)onSuccess
+{
+    return [ShopAPI addOneCommentInfoV2:objectId
+                                   type:type
+                                content:content
+                                 userId:userId
+                                starNum:starNum
+                               parentId:parentId
+                              imageUrls:imageUrls
+                                 shopId:shopId
+                                orderld:orderId
+                               callback:^(DataModel* dataModel) {
+                                   onSuccess(dataModel);
+                               }];
+}
+
+/**
+ *  评论列表
+ *
+ *  @param objectId   对象id
+ *  @param type       类型
+ *  @param nextCursor 游标
+ *  @param callback   回调参数
+ */
+- (ASIHTTPRequest*)getCommentInfoListV2:(NSInteger)objectId type:(NSInteger)type nextCursor:(NSInteger)nextCursor onSuccess:(onSuccess)onSuccess
+{
+
+    return [ShopAPI getCommentInfoListV2:objectId
+                                    type:type
+                              nextCursor:nextCursor
+                                callback:^(DataModel* dataModel) {
+                                    NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                    for (id data in dataModel.data) {
+                                        [dataArry addObject:[CommentModel JsonParse:data]];
+                                    }
+                                    dataModel.data = dataArry;
+
+                                    onSuccess(dataModel);
+                                }];
+}
+
+/**
+ *  获得帮分类
+ *
+ *  @param callback 回调函数
+ */
+- (ASIHTTPRequest*)getTribeCategory:(onSuccess)onSuccess
+{
+    return [ShopAPI getTribeCategory:^(DataModel* dataModel) {
+
+        NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+        for (id data in dataModel.data) {
+            [dataArry addObject:[TribeCategoryModel JsonParse:data]];
+        }
+        dataModel.data = dataArry;
+        onSuccess(dataModel);
+
+    }];
+}
+
+/**
+ *  获取可使用帮币数
+ *
+ *  @param goodsId  商品id
+ *  @param userId   用户id
+ *  @param callback
+ */
+- (ASIHTTPRequest*)getCouldUseBangBiCountV2:(NSInteger)goodsId userId:(NSInteger)userId onSuccess:(onSuccess)onSuccess
+{
+    return [ShopAPI getCouldUseBangBiCountV2:goodsId
+                                      userId:userId
+                                    callback:^(DataModel* dataModel) {
+                                        if (dataModel.code == 200) {
+                                            dataModel.data = [MsgListModel JsonParse:[dataModel.data objectAtIndex:0]];
+                                        }
+                                        onSuccess(dataModel);
+                                    }];
+}
+
+/**
+ *  检验用户帮币是否够用
+ *
+ *  @param count    可抵扣的帮币数
+ *  @param userId   用户id
+ *  @param callback
+ */
+- (ASIHTTPRequest*)checkBangBiCountV2:(NSInteger)count userId:(NSInteger)userId nextCursor:(NSInteger)nextCursor onSuccess:(onSuccess)onSuccess
+{
+    return [ShopAPI checkBangBiCountV2:count
+                                userId:userId
+                              callback:^(DataModel* dataModel) {
+                                  onSuccess(dataModel);
+                              }];
+}
+
+/**
+ *  生成订单
+ *
+ *  @param userId     用户id
+ *  @param goodsId    商品id
+ *  @param goodsName  商品名
+ *  @param totalPrice 总价格
+ *  @param leaveWords 说明
+ *  @param shopId     商铺id
+ *  @param nickname   昵称
+ *  @param callback
+ */
+- (ASIHTTPRequest*)saveGoodsOrderFormInfo:(NSInteger)userId goodsId:(NSInteger)goodsId shopId:(NSInteger)shopId onSuccess:(onSuccess)onSuccess
+{
+    return [ShopAPI saveGoodsOrderFormInfo:userId
+                                   goodsId:goodsId
+                                    shopId:shopId
+                                  callback:^(DataModel* dataModel) {
+                                      if (dataModel.code == 200) {
+
+                                          dataModel.data = [OrderModel JsonParse:[dataModel.data objectAtIndex:0]];
+                                      }
+                                      onSuccess(dataModel);
+                                  }];
+}
+
+/**
+ *  支付订单
+ *
+ *  @param userId     用户id
+ *  @param orderNum   订单编号
+ *  @param isBb       是否使用帮币
+ *  @param buyBbTotal 可抵用帮币数
+ *  @param callback
+ */
+- (ASIHTTPRequest*)payGoodsOrderForm:(NSInteger)userId orderNum:(NSString*)orderNum isBb:(NSInteger)isBb payMoney:(NSInteger)paymoney leaveWords:(NSString*)leaveWords buyBbTotal:(NSInteger)buyBbTotal onSuccess:(onSuccess)onSuccess
+{
+
+    return [ShopAPI payGoodsOrderForm:userId
+                             orderNum:orderNum
+                                 isBb:isBb
+                             payMoney:paymoney
+                           leaveWords:leaveWords
+                           buyBbTotal:buyBbTotal
+                             callback:^(DataModel* dataModel) {
+                                 if (dataModel.code == 202) {
+                                 }
+                                 onSuccess(dataModel);
+
+                             }];
+}
+
+/**
+ *  支付宝支付后回调
+ *
+ *  @param orderNum   订单编号
+ *  @param resultCode 支付宝支付结果
+ *  @param sellerId   绑定的卖家支付宝账号
+ *  @param partner    签约合作者身份
+ *  @param totalfee   实付款
+ *  @param callback
+ */
+- (ASIHTTPRequest*)writePayInfoIntoMySql:(NSString*)orderNum resultCode:(NSInteger)resultCode sellerId:(NSString*)sellerId partner:(NSString*)partner totalfee:(NSString *)totalfee onSuccess:(onSuccess)onSuccess
+{
+    return [ShopAPI writePayInfoIntoMySql:orderNum
+                               resultCode:resultCode
+                                 sellerId:sellerId
+                                  partner:partner
+                                 totalfee:totalfee
+                                 callback:^(DataModel* dataModel) {
+                                     if (dataModel.code == 202) {
+                                     }
+                                     onSuccess(dataModel);
+                                 }];
+}
+
+/**
+ *  取消支付
+ *
+ *  @param orderNum 订单编号
+ *  @param callback
+ */
+- (ASIHTTPRequest*)canclePay:(NSInteger)orderNum onSuccess:(onSuccess)onSuccess
+{
+    return [ShopAPI canclePay:orderNum
+                     callback:^(DataModel* dataModel) {
+                         if (dataModel.code == 201) {
+                         }
+                         onSuccess(dataModel);
+                     }];
+}
+
+/**
+ *  更多热门商品
+ *
+ *  @param nextCursor 游标
+ *  @param callback
+ */
+- (ASIHTTPRequest*)getMoreGoodsFrontPageV2:(NSInteger)nextCursor onSuccess:(onSuccess)onSuccess
+{
+    return [ShopAPI getMoreGoodsFrontPageV2:nextCursor
+                                   callback:^(DataModel* dataModel) {
+                                       NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                       for (id data in dataModel.data) {
+                                           [dataArry addObject:[OrderModel JsonParse:data]];
+                                       }
+                                       dataModel.data = dataArry;
+                                       onSuccess(dataModel);
+                                   }];
+}
+
+/**
+ *  添加喜欢
+ *
+ *  @param userId   用户id
+ *  @param objectId 对象id
+ *  @param type     类型
+ *  @param callback
+ */
+- (ASIHTTPRequest*)objectAddLikeV2:(NSInteger)userId objectId:(NSInteger)objectId type:(NSInteger)type onSuccess:(onSuccess)onSuccess
+{
+    return [ShopAPI objectAddLikeV2:userId
+                           objectId:objectId
+                               type:type
+                           callback:^(DataModel* dataModel) {
+                               onSuccess(dataModel);
+                           }];
+}
+
+/**
+ *  取消订单
+ *
+ *  @param orderNum 订单编号
+ *  @param callback
+ */
+- (ASIHTTPRequest*)cancleOrderV2:(NSString*)orderNum onSuccess:(onSuccess)onSuccess
+{
+
+    return [ShopAPI cancleOrderV2:orderNum
+                         callback:^(DataModel* dataModel) {
+                             onSuccess(dataModel);
+                         }];
+}
+
+@end

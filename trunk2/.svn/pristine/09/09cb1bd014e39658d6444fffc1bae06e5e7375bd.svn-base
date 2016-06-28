@@ -1,0 +1,250 @@
+//
+//  ActivityCommentViewController.m
+//  FamilysHelper
+//
+//  Created by 我 on 15/7/2.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "ActivityCommentViewController.h"
+#import "UIView+Toast.h"
+#import "CommentModel.h"
+#import "TribeService.h"
+#import "EGOTableView.h"
+#import "BangCommentCell.h"
+#import "activityCommentView.h"
+
+@interface ActivityCommentViewController () <EGOTableViewDelegate, UITableViewDataSource, UITableViewDelegate>
+
+@end
+
+@implementation ActivityCommentViewController {
+    EGOTableView* _tableView;
+    DataModel* _dataModel;
+    ASIHTTPRequest* _request;
+    NSString* _cacheKey;
+    BOOL _isRefresh;
+}
+@synthesize messageListner;
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self initView];
+    _isRefresh = NO;
+    _cacheKey = [NSString stringWithFormat:@"%@_%ld", CACHE_BANG_ACTIVITY_DETAIL_COMMITLIST, (long)_activityId];
+     _dataModel = [AppCache loadCache:_cacheKey];
+ 
+    if (!_dataModel) {
+        [_tableView launchRefreshing];
+    }
+}
+
+- (void)initView
+{
+    _tableView = [[EGOTableView alloc]
+        initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH,
+                          SCREEN_HEIGHT - TopBarHeight)];
+    _tableView.backgroundColor = [UIColor whiteColor];
+    _tableView.backgroundView = nil;
+    _tableView.dataSource = self;
+    _tableView.delegate = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+    [self.view addSubview:_tableView];
+}
+
+- (void)pullingTableViewDidStartRefreshing:(EGOTableHeaderView*)tableView
+{
+
+    if (_dataModel) {
+
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _isRefresh = YES;
+    [self loadData];
+}
+
+- (void)pullingTableViewDidStartLoading:(EGOTableView*)tableView
+{
+
+    _isRefresh = NO;
+    [self loadData];
+}
+
+- (NSDate*)pullingTableViewRefreshingFinishedDate
+{
+
+    return [NSDate date];
+}
+
+- (NSDate*)pullingTableViewLoadingFinishedDate
+{
+    return [NSDate date];
+}
+
+- (void)loadData
+{
+
+    if (_request) {
+        [_request cancel];
+    }
+    _request = [[TribeService shareInstance]
+        getActivityReplyList:_activityId
+                  nextCursor:_dataModel.nextCursor
+                   OnSuccess:^(DataModel* dataModel) {
+                       if (dataModel.code == 200) {
+                                                      if (((NSArray*)dataModel.data).count == 0 && _dataModel.nextCursor == 0) {
+                                                          
+                                                          [self noCommnetView];
+                                                      }
+
+                           if (_dataModel && !_isRefresh) {
+
+                               [_dataModel.data addObjectsFromArray:dataModel.data];
+                               _dataModel.code = dataModel.code;
+                               _dataModel.nextCursor = dataModel.nextCursor;
+                               _dataModel.previousCursor = dataModel.previousCursor;
+                               _dataModel.error = dataModel.error;
+                           }
+                           else
+                               _dataModel = dataModel;
+                           [AppCache saveCache:_cacheKey Data:_dataModel];
+                           if (_dataModel.previousCursor == _dataModel.nextCursor) {
+                               _tableView.reachedTheEnd = YES;
+                           }
+                           else {
+                               _tableView.reachedTheEnd = NO;
+                           }
+                           [_tableView reloadData];
+                       }
+                       else {
+                           [ToastManager showToast:dataModel.error
+                                          withTime:Toast_Hide_TIME];
+                           _tableView.reachedTheEnd = NO;
+                       }
+
+                       [_tableView tableViewDidFinishedLoading];
+                   }];
+}
+
+//无评论时的页面
+-(void)noCommnetView{
+    _tableView.hidden = YES;
+    UIImageView* promptImage = [[UIImageView alloc]
+                                initWithFrame:CGRectMake(SCREEN_WIDTH/2 - 24, self.view.center.y - 122, 52, 48)];
+    promptImage.image = [UIImage imageNamed:@"ic_wpl@2x"];
+    [self.view addSubview:promptImage];
+    
+    UILabel* promptLabel = [[UILabel alloc]
+                            initWithFrame:CGRectMake(0, self.view.center.y - 64,
+                                                     SCREEN_WIDTH, 15)];
+    promptLabel.text = @"现在还没有评论哦~";
+    promptLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    promptLabel.font = [UIFont systemFontOfSize:15];
+    promptLabel.textAlignment = NSTextAlignmentCenter;
+    [self.view addSubview:promptLabel];
+}
+
+- (CGFloat)tableView:(UITableView*)tableView
+    heightForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    CommentModel* commentModel = _dataModel.data[indexPath.row];
+
+    if (commentModel.imageList.count == 0 ) {
+        return 145 + commentModel.commentList.count * 30;
+    }
+    else {
+        return 235 + commentModel.commentList.count * 30;
+    }
+}
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView
+{
+
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView*)tableView
+ numberOfRowsInSection:(NSInteger)section
+{
+
+    return ((NSArray*)_dataModel.data).count;
+}
+
+- (UITableViewCell*)tableView:(UITableView*)tableView
+        cellForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+
+    static NSString* identifier = @"BangCommentCell";
+
+    BangCommentCell* commentCell =
+        [tableView dequeueReusableCellWithIdentifier:identifier];
+    if (!commentCell) {
+        commentCell =
+            [[BangCommentCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                   reuseIdentifier:identifier];
+        commentCell.selectionStyle = UITableViewCellSelectionStyleNone;
+        commentCell.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+        commentCell.messageListner = self;
+    }
+    commentCell.row = indexPath.row;
+    commentCell.nextCurosr = _dataModel.nextCursor;
+
+    CommentModel* commentModel = _dataModel.data[indexPath.row];
+    [commentCell bindCommentModel:commentModel row:indexPath.row];
+
+    return commentCell;
+}
+
+#pragma mark -
+
+#pragma mark UIScrollViewDelegate
+
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+
+    [_tableView tableViewDidScroll:scrollView];
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView*)scrollView
+                  willDecelerate:(BOOL)decelerate
+{
+
+    [_tableView tableViewDidEndDragging:scrollView];
+}
+
+#pragma mark RouteMessage Delegate
+- (void)RouteMessage:(NSString*)message withContext:(id)context
+{
+    if ([message isEqualToString:NOTIFICATION_BANGBANG_ACTIVITYREPLY]) {
+        
+            NSDictionary* dic = context;
+            CommentModel *comment = [dic objectForKey:NOTIFICATION_DATA];
+            [_dataModel.data insertObject:comment atIndex:0];
+            [_tableView reloadData];
+        
+    }else if ([message isEqualToString:NOTIFICATION_BANGBANG_ACTIVITYCOMMENT]){
+        
+        NSDictionary* dic = context;
+         ActivityModel* activityModel = [dic objectForKey:NOTIFICATION_DATA];
+        NSInteger selectRow = activityModel.row;
+        CommentModel* commentModel = _dataModel.data[selectRow];
+        [commentModel.commentList arrayByAddingObject:activityModel];
+        [_dataModel.data replaceObjectAtIndex:selectRow withObject:commentModel];
+        [_tableView reloadData];
+    }
+    else {
+        [self.messageListner RouteMessage:message withContext:context];
+    }
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+@end

@@ -1,0 +1,21 @@
+//
+//  SelectView.h
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/6/3.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "TribeCategoryModel.h"
+#import "DataModel.h"
+
+@interface SelectView : UIView
+@property (nonatomic,strong)UIButton *typeButton;
+@property (nonatomic,strong)UIButton *selectButton;
+@property (nonatomic, strong) UIButton* oldSelectButton;
+@property (nonatomic, strong) UIButton* oldTypeButton;
+
+-(void)bindTribeCategory:(DataModel *)model;
+
+@end

@@ -1,0 +1,26 @@
+//
+//  PartnerConfig.h
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/6/18.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#ifndef FamilysHelper_PartnerConfig_h
+#define FamilysHelper_PartnerConfig_h
+//合作身份者id，以2088开头的16位纯数字
+#define PartnerID @"2088711908903334"
+//收款支付宝账号
+#define SellerID  @"ahjjb777@163.com"
+
+//安全校验码（MD5）密钥，以数字和字母组成的32位字符
+#define MD5_KEY @"zjppickdo0ef7su58gsrh0gswqvib2uv"
+
+//商户私钥，自助生成
+#define PartnerPrivKey @"MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBANm3fhGwNYGRlpDBCcsnqdnI9NU01JrbA9+mHBBMkif4jiM9o9fwVsA1xBut/KubSPHhBWXifXrUogbQX/HPW+C5NKVw8trgCdB+yibO4JpsDeqOklALhELTb5N9VUDEGOvpAkMf9P9PuZCQ//78EcDbrujzwvWM3mQ8Rm8IsaRfAgMBAAECgYAuDbF+Pl7jHI/T6PGQZsB4EBkyLG24oBGOso2HKRtVly9B5x0MZYuENxtXm5MyHbPtbmL87U8Lt4TamiNhfDJ7z8eYK/j8Zanye4Of9gmuACam2/iCm9T9OKDjzM/882O2I/qYeFOIy+an0r5z9CDvXPvpoNfuLTDR14hEVkb0gQJBAPnT+ehNoua/IczLFAB2KBb3C3ba2BCiczqEhjlgxPhpIZY0iprvgMeQw3wQdaBrZ+pjEJ/M6CS2DMvLIpNQtJ8CQQDfGG4ozT880SuvnLsiTANjpbWDYzbS+8rNmc9j1Pv2z+ALsbxhawnyACSkZW6Itb1Fqgyl2XKQTbxHK5TfrzhBAkBwsdFqnBLe2dsqYXUtXB9rdJdkTwXmQxGNlRhjK6bOk8YF1r+rclx6KXA1N8uHyMuAbJ2kKC+T19df2stG/sHrAkEAgFFt8xvytoldBjowzI5KGMOUPokPXJUk1dMVHUfA0PpJ1JAbWTEW3FHGwaPxysI1pl8jvTTwFx4PICRqEaqXwQJAQqi9krWJTNarmaBnMhFzmNN7oYTFemV6eOUqF0EjVNg3cE99Nn8h922A0YjTaFk/RV/ivLOsKX5nwZT0W3biEQ=="
+
+
+//支付宝公钥
+#define AlipayPubKey   @"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDZt34RsDWBkZaQwQnLJ6nZyPTVNNSa2wPfphwQTJIn+I4jPaPX8FbANcQbrfyrm0jx4QVl4n161KIG0F/xz1vguTSlcPLa4AnQfsomzuCabA3qjpJQC4RC02+TfVVAxBjr6QJDH/T/T7mQkP/+/BHA267o88L1jN5kPEZvCLGkXwIDAQAB"
+
+#endif

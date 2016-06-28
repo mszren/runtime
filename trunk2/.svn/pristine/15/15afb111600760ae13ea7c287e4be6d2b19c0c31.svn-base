@@ -1,0 +1,19 @@
+PODS:
+  - DZNEmptyDataSet (1.5.2)
+  - JMStaticContentTableViewController (0.3.1)
+  - Masonry (0.6.1)
+  - MTStatusBarOverlay (0.9.1)
+
+DEPENDENCIES:
+  - DZNEmptyDataSet
+  - JMStaticContentTableViewController (~> 0.3.1)
+  - Masonry
+  - MTStatusBarOverlay (~> 0.9.1)
+
+SPEC CHECKSUMS:
+  DZNEmptyDataSet: 741da409081a4bf707c949c964623a6ad1799772
+  JMStaticContentTableViewController: 297c320abe692c46b73d94175b82d2120495c687
+  Masonry: 4972309f2f134de9dd312f4dc4a21359b50e6caa
+  MTStatusBarOverlay: 258a1ee369f4dc4b94107d02cfd7f6b1317c421b
+
+COCOAPODS: 0.38.2

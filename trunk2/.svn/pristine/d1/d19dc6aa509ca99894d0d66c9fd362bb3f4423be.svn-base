@@ -1,0 +1,337 @@
+//
+//  ReturnOrderDetailController.m
+//  FamilysHelper
+//
+//  Created by 我 on 15/8/5.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "ReturnOrderDetailController.h"
+#import "UserService.h"
+#import <Masonry/Masonry.h>
+#import "OrderModel.h"
+
+@interface ReturnOrderDetailController ()
+
+@end
+
+@implementation ReturnOrderDetailController{
+    OrderModel *_orderModel;
+    ASIHTTPRequest *_request;
+    MBProgressHUD *_hud;
+    
+    UIView *_orderView;
+    UILabel *_customerNumLabel;
+    UILabel *_orderNumLabel;
+    UILabel *_payTypeLabel;
+    
+    UIView *_shopView;
+    EGOImageView *_shopImage;
+    UILabel *_shopNameLabel;
+    UILabel *_shopGrayLabel;
+    UILabel *_shopPhoneLabel;
+    
+    UILabel *_noticeLabel;
+    UILabel *_descripeLabel;
+    
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    [self initializeWhiteBackgroudView:@"退货详情"];
+    [self initView];
+    _orderModel = [AppCache loadCache:CACHE_PERSON_RETURNORDER];
+    if (!_orderModel) {
+        
+        [self initData];
+    }
+    else
+        [self bindData];
+
+}
+
+-(void)initView{
+    self.view.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    [self addOrderView];
+    [self addShopView];
+    [self addNoticeLabel];
+    [self addDescripeLabel];
+}
+
+-(void)addOrderView{
+    _orderView = [[UIView  alloc]init];
+    [self.view addSubview:_orderView];
+    _orderView.backgroundColor = [UIColor whiteColor];
+    [_orderView mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        make.left.mas_equalTo(0);
+        make.top.mas_equalTo(15);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH, 250));
+    }];
+    
+    
+    [self addCustomerNumLabel];
+    [self addGrayLabel];
+    [self addOrderLaber];
+    [self addPayTypeLabel];
+    [self addStatusLabel];
+}
+
+-(void)addCustomerNumLabel{
+    
+    _customerNumLabel = [[UILabel alloc]init];
+    [_orderView addSubview:_customerNumLabel];
+    [_customerNumLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        make.left.mas_equalTo(10);
+        make.top.mas_equalTo(10);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH - 20,48));
+    }];
+    _customerNumLabel.textColor = COLOR_RED_DEFAULT_04;
+    _customerNumLabel.font = [UIFont systemFontOfSize:15];
+    
+}
+
+-(void)addGrayLabel{
+    
+    UILabel *grayLabel = [[UILabel alloc]init];
+    [_orderView addSubview:grayLabel];
+    [grayLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+       
+        make.left.mas_equalTo(10);
+        make.top.mas_equalTo(48);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH - 20, 1));
+    }];
+    grayLabel.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    
+}
+
+-(void)addOrderLaber{
+    
+    _orderNumLabel = [[UILabel alloc]init];
+    [_orderView addSubview:_orderNumLabel];
+    [_orderNumLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.left.mas_equalTo(32);
+        make.top.mas_equalTo(60);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH - 42, 13));
+    }];
+    _orderNumLabel.textColor = COLOR_RED_DEFAULT_04;
+    _orderNumLabel.font = [UIFont systemFontOfSize:13];
+    
+}
+
+-(void)addPayTypeLabel{
+    
+    _payTypeLabel = [[UILabel alloc]init];
+    [_orderView addSubview:_payTypeLabel];
+    [_payTypeLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+       
+        make.left.mas_equalTo(32);
+        make.top.mas_equalTo(85);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH - 42, 13));
+    }];
+    _payTypeLabel.font = [UIFont systemFontOfSize:13];
+    _payTypeLabel.textColor = COLOR_RED_DEFAULT_04;
+    
+}
+
+-(void)addStatusLabel{
+    
+    NSArray *statusArry = @[@"提交申请",@"通过审核",@"退款中",@"退款成功"];
+    for (NSInteger i = 0; i < 4; i++) {
+        
+        UILabel *statusLabel = [[UILabel alloc]init];
+        [_orderView addSubview:statusLabel];
+        [statusLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+            
+            make.left.mas_equalTo(10 + (SCREEN_WIDTH - 10)/4*i);
+            make.top.mas_equalTo(220);
+            make.size.mas_equalTo(CGSizeMake((SCREEN_WIDTH - 10)/4, 15));
+        }];
+        statusLabel.textColor = COLOR_RED_DEFAULT_04;
+        statusLabel.font = [UIFont systemFontOfSize:13];
+        statusLabel.text = statusArry[i];
+    }
+}
+
+-(void)addShopView{
+    
+    _shopView = [[UIView alloc]init];
+    [self.view addSubview:_shopView];
+    [_shopView mas_makeConstraints:^(MASConstraintMaker *make) {
+       
+        make.left.mas_equalTo(0);
+        make.top.mas_equalTo(280);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH, 96));
+    }];
+    _shopView.backgroundColor = [UIColor whiteColor];
+    
+    [self addShopLabel];
+    [self addShopImage];
+    [self addShopGrayLabel];
+    [self addPhoneLabel];
+    
+}
+
+-(void)addShopImage{
+    
+    _shopImage = [[EGOImageView alloc]initWithPlaceholderImage:[UIImage imageNamed:@"pic_default_40x40"]];
+    [_shopView addSubview:_shopImage];
+    [_shopImage mas_makeConstraints:^(MASConstraintMaker *make) {
+       
+        make.left.mas_equalTo(10);
+        make.top.mas_equalTo(10);
+        make.size.mas_equalTo(CGSizeMake(35, 35));
+    }];
+    _shopImage.layer.cornerRadius = _shopImage.frame.size.width/2;
+    _shopImage.clipsToBounds = YES;
+    
+}
+
+-(void)addShopLabel{
+    
+    _shopNameLabel = [[UILabel alloc]init];
+    [_shopView addSubview:_shopNameLabel];
+    [_shopNameLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+       
+        make.left.mas_equalTo(55);
+        make.top.mas_equalTo(0);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH - 55, 55));
+    }];
+    _shopNameLabel.textColor = COLOR_RED_DEFAULT_04;
+    _shopNameLabel.font = [UIFont systemFontOfSize:15];
+    
+}
+
+-(void)addShopGrayLabel{
+    
+    _shopGrayLabel = [[UILabel alloc]init];
+    [_shopView addSubview:_shopGrayLabel];
+    [_shopGrayLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+       
+        make.left.mas_equalTo(20);
+        make.top.mas_equalTo(55);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH - 40, 1));
+    }];
+    _shopGrayLabel.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    
+}
+
+-(void)addPhoneLabel{
+    _shopPhoneLabel = [[UILabel alloc]init];
+    [_shopView addSubview:_shopPhoneLabel];
+    [_shopPhoneLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+       
+        make.left.mas_equalTo(20);
+        make.top.mas_equalTo(55);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH - 40, 41));
+    }];
+    
+}
+
+-(void)addNoticeLabel{
+    
+    _noticeLabel = [[UILabel alloc]init];
+    [self.view addSubview:_noticeLabel];
+    [_noticeLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+        
+        make.left.mas_equalTo(32);
+        make.top.mas_equalTo(395);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH - 52, 13));
+    }];
+
+    NSString *string = @"退货须知";
+    NSInteger length = string.length;
+    
+    //设置字体
+    NSMutableAttributedString *attrString = [[NSMutableAttributedString alloc]initWithString:string];
+    UIFont *baseFont = [UIFont systemFontOfSize:15];
+    [attrString addAttribute:NSFontAttributeName value:baseFont range:NSMakeRange(0, length)];
+    
+    //设置颜色
+    [attrString addAttribute:NSForegroundColorAttributeName value:COLOR_RED_DEFAULT_04 range:[string rangeOfString:@"退货"]];
+    [attrString addAttribute:NSForegroundColorAttributeName value:COLOR_RED_DEFAULT_904 range:[string rangeOfString:@"须知"]];
+    _noticeLabel.attributedText = attrString;
+    
+}
+
+-(void)addDescripeLabel{
+    
+    _descripeLabel = [[UILabel alloc]init];
+    [self.view addSubview:_descripeLabel];
+    [_descripeLabel mas_makeConstraints:^(MASConstraintMaker *make) {
+       
+        make.left.mas_equalTo(24);
+        make.top.mas_equalTo(420);
+        make.size.mas_equalTo(CGSizeMake(SCREEN_WIDTH - 44, 40));
+    }];
+    _descripeLabel.numberOfLines = 0;
+    _descripeLabel.textAlignment = NSTextAlignmentLeft;
+    _descripeLabel.textColor = COLOR_RED_DEFAULT_04;
+    _descripeLabel.font = [UIFont systemFontOfSize:13];
+    
+}
+
+-(void)initData{
+    
+    _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    if (_request) {
+        [_request cancel];
+    }
+    _request = [[UserService shareInstance] getRefundInfoByMobile:_orderID OnSuccess:^(DataModel *dataModel) {
+        if (dataModel.code == 200) {
+            _orderModel = dataModel.data;
+            [AppCache saveCache:CACHE_PERSON_RETURNORDER Data:_orderModel];
+            [self bindData];
+        }
+    }];
+    
+}
+
+-(void)bindData{
+    
+    _hud.hidden = YES;
+    
+    _customerNumLabel.text = _orderModel.customerNum;
+    _orderNumLabel.text = [NSString stringWithFormat:@"订单编号：%@",_orderModel.orderNum];
+    switch (_orderModel.payStatus) {
+        case 1:
+            
+            _payTypeLabel.text =[NSString stringWithFormat:@"支付方式：%@",@"支付宝支付"];
+            break;
+        case 2:
+            
+            _payTypeLabel.text = [NSString stringWithFormat:@"支付方式：%@",@"微信支付"];
+            break;
+        default:
+            
+            _payTypeLabel.text = [NSString stringWithFormat:@"支付方式：%@",@"现金支付"];
+            break;
+    }
+    
+    [_shopImage setImageURL:[AppImageUtil getImageURL:_orderModel.shopImage Size:_shopImage.frame.size]];
+    _shopNameLabel.text = _orderModel.shopName;
+    
+    NSMutableString *string = [NSMutableString stringWithFormat:@"客服电话："];
+    [string appendFormat:@"0551-2635468"];
+    NSInteger length = string.length;
+    //设置字体
+    UIFont *baseFont = [UIFont systemFontOfSize:15];
+    NSMutableAttributedString *attributeString = [[NSMutableAttributedString alloc]initWithString:string];
+    [attributeString addAttribute:NSFontAttributeName value:baseFont range:NSMakeRange(0, length)];
+    
+    //设置颜色
+    [attributeString addAttribute:NSForegroundColorAttributeName value:COLOR_GRAY_DEFAULT_OPAQUE_b9 range:[string rangeOfString:@"客服电话："]];
+    [attributeString addAttribute:NSForegroundColorAttributeName value:COLOR_RED_DEFAULT_04 range:NSMakeRange(5, length - 5)];
+    _shopPhoneLabel.attributedText = attributeString;
+    
+    _descripeLabel.text = _orderModel.notice;
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+@end

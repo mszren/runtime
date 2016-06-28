@@ -1,0 +1,357 @@
+//
+//  ChatGroupDetailController.m
+//  FamilysHelper
+//
+//  Created by 曹亮 on 15/4/6.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "MJRefresh.h"
+#import "UUMessageCell.h"
+#import "UUMessageFrame.h"
+
+#import "UUInputFunctionView.h"
+#import "GroupRedPacketController.h"
+#import "ChatGroupDetailController.h"
+#import "RobRedPacketWebController.h"
+
+#import "PersonController.h"
+#import "GroupInfoListController.h"
+
+@interface ChatGroupDetailController ()<UUInputFunctionViewDelegate,UUMessageCellDelegate,UITableViewDataSource,UITableViewDelegate>{
+
+}
+@end
+
+static MessageManage * messageManage = nil;
+static XMPPManager * xmppManager = nil;
+@implementation ChatGroupDetailController
+
+#pragma mark
+#pragma mark --  initialize & delloc
+- (id) init{
+    self = [super init];
+    if (self) {
+        messageManage = [MessageManage shareInstance];
+        xmppManager = [XMPPManager shareInstance];
+    }
+    return self;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self addRefreshViews];
+    [self loadBaseViewsAndData];
+    [self initView];
+}
+
+-(void)initView{
+    
+    [self initializeWhiteBackgroudView:self.currentGroupModel.room_nick];
+    
+    _redPacketBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    [_redPacketBtn setTitle:@"群红包" forState:UIControlStateNormal];
+    _redPacketBtn.frame = CGRectMake(SCREEN_WIDTH - 150, 30, 100, 50);
+    _redPacketBtn.backgroundColor = [UIColor redColor];
+    [_redPacketBtn addTarget:self action:@selector(redPacketAction:) forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_redPacketBtn];
+    
+    UIBarButtonItem *rightItem = [[UIBarButtonItem alloc]initWithTitle:@"群资料" style:UIBarButtonItemStylePlain target:self action:@selector(ItemAction:)];
+    self.navigationItem.rightBarButtonItem = rightItem;
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    
+    [[NSNotificationCenter defaultCenter]  addObserver:self selector:@selector(newMessage:) name:NSNotificationCenterNewMessageName object:nil];
+    [[NSNotificationCenter defaultCenter]  addObserver:self selector:@selector(changeSendMessageStatus:) name:NSNotificationCenterSendMessageStatusName object:nil];
+}
+- (void)viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    [[NSNotificationCenter defaultCenter]removeObserver:self];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+}
+
+#pragma mark
+#pragma mark --  initialize view
+- (void)addRefreshViews
+{
+    __weak typeof(self) weakSelf = self;
+    
+    //load more
+    _head = [MJRefreshIndicatorHeaderView header];
+    _head.scrollView = self.chatTableView;
+    _head.beginRefreshingBlock = ^(MJRefreshBaseView *refreshView) {
+        weakSelf.currentPage++;
+        
+        NSMutableArray * ldata = [messageManage selectGroupCacheData:weakSelf.currentGroupModel withPage:weakSelf.currentPage];
+        
+        if (ldata.count > 0) {
+            [weakSelf.dataList insertObjects:ldata atIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(0, ldata.count)]];
+            [UUMessageFrame changeParseToChatModel:weakSelf.dataList];
+            
+            NSIndexPath *indexPath = [NSIndexPath indexPathForRow:ldata.count-1  inSection:0];
+            
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [weakSelf.chatTableView reloadData];
+                [weakSelf.chatTableView scrollToRowAtIndexPath:indexPath atScrollPosition:UITableViewScrollPositionTop animated:NO];
+            });
+        }
+        
+        if (ldata.count < ChatCachePerCount) {
+            [weakSelf.head setNoData];
+        }
+        [weakSelf.head endRefreshing];
+    };
+}
+#pragma mark
+#pragma mark -- btn action method
+- (void)ItemAction:(id) sender{
+    
+    GroupInfoListController * controller = [[GroupInfoListController  alloc] init];
+    controller.hidesBottomBarWhenPushed = YES;
+    controller.currentUserMessageModel= _currentGroupModel;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)redPacketAction:(id) sender
+{
+    GroupRedPacketController * controller = [[GroupRedPacketController  alloc] init];
+    controller.hidesBottomBarWhenPushed = YES;
+    controller.currentGroupModel = _currentGroupModel;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+#pragma mark
+#pragma mark -- NSNotificationCenterSendMessageStatusName
+- (void)changeSendMessageStatus:(NSNotification *) sender{
+    NSObject * obj = [sender object];
+    if ([obj isKindOfClass:[MessageInfoModel class]]) {
+        MessageInfoModel * lmessageInfoModel = (MessageInfoModel *) obj;
+        
+        NSUInteger num = _dataList.count;
+        
+        for (int i = 0; i < num; i++) {
+            NSObject * temp = [_dataList objectAtIndex:i];
+            if ([temp isKindOfClass:[UUMessageFrame class]]) {
+                UUMessageFrame * messageFrame = (UUMessageFrame *) temp;
+                if (messageFrame.messageInfoModel.msgId == lmessageInfoModel.msgId) {
+                    messageFrame.messageInfoModel.state = lmessageInfoModel.state;
+                    
+                    UUMessageCell * cell = (UUMessageCell *)[_chatTableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:i inSection:0]];
+                    if (cell) {
+                        cell.stateBtn.hidden = lmessageInfoModel.state;
+                    }
+                }
+            }
+            
+        }
+    }
+}
+
+- (void)newMessage:(NSNotification *) sender
+{
+    NSObject * obj = [sender object];
+    if ([obj isKindOfClass:[MessageInfoModel class]]) {
+        MessageInfoModel * messageInfoModel = (MessageInfoModel *) obj;
+        if ([messageInfoModel.groupName isEqualToString:_currentGroupModel.name]) {
+            UUMessageFrame *messageFrame = [[UUMessageFrame alloc]init];
+            [messageFrame setMessageInfoModel:messageInfoModel];
+            
+            [_dataList addObject:messageFrame];
+        
+            [self.chatTableView reloadData];
+            [self tableViewScrollToBottom];
+            
+            [messageManage clearUserMessageNum:_currentGroupModel.name];
+        }
+    }
+}
+#pragma mark
+#pragma mark -- data manage
+
+- (void)loadBaseViewsAndData
+{
+    self.chatTableView.keyboardDismissMode = UIScrollViewKeyboardDismissModeOnDrag;
+    [_dataList removeAllObjects];
+    
+    NSMutableArray * ldata = [messageManage selectGroupCacheData:_currentGroupModel withPage:_currentPage];
+    [_dataList insertObjects:ldata atIndexes:[NSIndexSet indexSetWithIndexesInRange:NSMakeRange(0, ldata.count)]];
+    [UUMessageFrame changeParseToChatModel:_dataList];
+    
+    IFView = [[UUInputFunctionView alloc]initWithSuperVC:self];
+    IFView.delegate = self;
+    [self.view addSubview:IFView];
+    
+    [self.chatTableView reloadData];
+    [self tableViewScrollToBottom];
+}
+
+#pragma mark
+#pragma mark -- tableView Scroll to bottom
+- (void)tableViewScrollToBottom
+{
+    if (_dataList.count==0)
+        return;
+    
+    NSIndexPath *indexPath = [NSIndexPath indexPathForRow:_dataList.count-1 inSection:0];
+    [self.chatTableView scrollToRowAtIndexPath:indexPath atScrollPosition:UITableViewScrollPositionBottom animated:YES];
+}
+
+#pragma mark
+#pragma mark --  InputFunctionViewDelegate
+- (void)UUInputFunctionView:(UUInputFunctionView *)funcView sendMessage:(NSString *)message
+{
+    MessageInfoModel * messageInfoModel = [[MessageInfoModel alloc] initWithMessageContent:message withType:CHATINFO_NML withToUser:[CurrentAccount currentAccount]];
+    messageInfoModel.groupName = _currentGroupModel.name;
+    messageInfoModel.chatType = CHATTYPE_GROUP;
+    messageInfoModel.groupFace = _currentGroupModel.face;
+    messageInfoModel.groupName = _currentGroupModel.name;
+    messageInfoModel.groupNickName = _currentGroupModel.room_nick;
+    messageInfoModel.isSend = 1;
+    [self sendMessage:messageInfoModel];
+}
+
+- (void)UUInputFunctionView:(UUInputFunctionView *)funcView sendPicture:(NSString *)imageUrl{
+    MessageInfoModel * messageInfoModel = [[MessageInfoModel alloc] initWithMessageContent:imageUrl withType:CHATINFO_FIL_IMG withToUser:[CurrentAccount currentAccount]];
+    messageInfoModel.groupName = _currentGroupModel.name;
+    messageInfoModel.chatType = CHATTYPE_GROUP;
+    messageInfoModel.groupFace = _currentGroupModel.face;
+    messageInfoModel.groupName = _currentGroupModel.name;
+    messageInfoModel.groupNickName = _currentGroupModel.room_nick;
+    messageInfoModel.isSend = 1;
+    messageInfoModel.file_url = getOriginalImage(imageUrl);
+    messageInfoModel.file_ext = CHAT_Image_file_ext_Name;
+    [self sendMessage:messageInfoModel];
+}
+
+- (void)UUInputFunctionView:(UUInputFunctionView *)funcView sendVoice:(NSString *)messageUrl time:(NSInteger)second
+{
+    MessageInfoModel * messageInfoModel = [[MessageInfoModel alloc] initWithMessageContent:messageUrl withType:CHATINFO_FIL_Voice withToUser:[CurrentAccount currentAccount]];
+    messageInfoModel.groupName = _currentGroupModel.name;
+    messageInfoModel.chatType = CHATTYPE_GROUP;
+    messageInfoModel.groupFace = _currentGroupModel.face;
+    messageInfoModel.groupName = _currentGroupModel.name;
+    messageInfoModel.groupNickName = _currentGroupModel.room_nick;
+    messageInfoModel.isSend = 1;
+    messageInfoModel.file_url = getFileURL(messageUrl);
+    messageInfoModel.file_ext = CHAT_Voice_file_ext_Name;
+    [self sendMessage:messageInfoModel];
+}
+
+- (void)tapRedPacketAction:(MessageInfoModel *) aMessageInfoModel
+{
+    RobRedPacketWebController * controller = [[RobRedPacketWebController alloc] init];
+    controller.url = aMessageInfoModel.subjectStr;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+#pragma mark
+#pragma mark -- send xmpp message and deal message cache
+- (void)sendMessage:(MessageInfoModel *) messageInfoModel
+{
+    //message cache manage
+    [messageManage insertMyMessageToCache:messageInfoModel];
+    //find insert MessageInfoModel
+    MessageInfoModel * temp = [messageManage selectMessageInfoModelByMessageInfoModel:messageInfoModel];
+    messageInfoModel.msgId = temp.msgId;
+    
+    [_dataList addObject:messageInfoModel];
+    [UUMessageFrame  changeParseToChatModel:_dataList];
+    
+    if (messageInfoModel.chatInfoType ==  CHATINFO_FIL_Voice) {
+        messageInfoModel.content =  getFileURL(messageInfoModel.content);
+    }else if (messageInfoModel.chatInfoType ==  CHATINFO_FIL_IMG){
+        messageInfoModel.content = getOriginalImage(messageInfoModel.content);
+    }else if (messageInfoModel.chatInfoType ==  CHATINFO_FIL_Video){
+        messageInfoModel.content = getFileURL(messageInfoModel.content);
+    }
+    [xmppManager.xmppMessageManager sendMessage:messageInfoModel];
+    
+    [self.chatTableView reloadData];
+    [self tableViewScrollToBottom];
+}
+
+#pragma mark
+#pragma mark -- tableView delegate  & datasource
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return _dataList.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    UUMessageCell *cell = [tableView dequeueReusableCellWithIdentifier:@"CellID"];
+    if (cell == nil) {
+        cell = [[UUMessageCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"CellID"];
+        cell.delegate = self;
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    }
+    [cell setMessageFrame:_dataList[indexPath.row]];
+    return cell;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return [_dataList[indexPath.row] cellHeight];
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [self.view endEditing:YES];
+    [IFView hideMoreView];
+}
+
+#pragma mark
+#pragma mark -- table view display
+- (void)tableView:(UITableView *)ltableView didEndDisplayingCell:(UITableViewCell *)lcell forRowAtIndexPath:(NSIndexPath *)indexPath{
+    UUMessageCell *cell = (UUMessageCell *)lcell;
+    [cell cancelAllBtnImageLoad];
+}
+- (void)tableView:(UITableView *)ltableView willDisplayCell:(UITableViewCell *)lcell forRowAtIndexPath:(NSIndexPath *)indexPath{
+    UUMessageCell * cell =(UUMessageCell *)lcell;
+    [cell loadHeadImg:_dataList[indexPath.row]];
+}
+
+#pragma mark
+#pragma mark -- UUMessageCell  cellDelegate
+- (void)headImageDidClick:(UUMessageCell *)cell userId:(NSString *)userId{
+    PersonController * controller  = [[PersonController alloc] init];
+    if (cell.messageFrame.messageInfoModel.isSend) {
+        controller.currentUser = [CurrentAccount currentAccount];
+    }else{
+        controller.currentUser = cell.messageFrame.messageInfoModel.toUser;
+    }
+    controller.hidesBottomBarWhenPushed = YES;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)messageState:(UUMessageCell *)cell withModel:(MessageInfoModel *) lmessageInfoModel{
+    lmessageInfoModel.time = [NSDate currentTimeByJava];
+    lmessageInfoModel.groupName = _currentGroupModel.name;
+    lmessageInfoModel.state = SUCCESS;
+    lmessageInfoModel.toUser = [CurrentAccount currentAccount];
+    lmessageInfoModel.groupFace = _currentGroupModel.face;
+    lmessageInfoModel.groupNickName = _currentGroupModel.room_nick;
+    lmessageInfoModel.isSend = 1;
+    
+    [_dataList removeObject:cell.messageFrame];
+    [messageManage updateSendMessageTime:lmessageInfoModel];
+    [messageManage updateUserMessage:lmessageInfoModel];
+    
+    [_dataList addObject:lmessageInfoModel];
+    [UUMessageFrame  changeParseToChatModel:_dataList];
+    
+    [self.chatTableView reloadData];
+    [self tableViewScrollToBottom];
+    
+    [xmppManager.xmppMessageManager sendMessage:lmessageInfoModel];
+}
+
+@end

@@ -1,0 +1,423 @@
+//
+//  MyhelpViewController.m
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/5/22.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "MyhelpViewController.h"
+#import "BangIndexController.h"
+#import "TribeListModel.h"
+#import "TribeService.h"
+#import "MyFollowCell.h"
+#import "RecommendCell.h"
+#import "BangListController.h"
+#import "TribeModel.h"
+#import "EGOTableView.h"
+
+@interface MyhelpViewController () <UISearchBarDelegate,EGOTableViewDelegate, UISearchDisplayDelegate>
+
+@end
+
+@implementation MyhelpViewController {
+    EGOTableView* _tableView;
+    DataModel* _dataModel;
+    ASIHTTPRequest *_request;
+    UISearchBar *_searchBar;
+    BOOL _isRefresh;
+}
+@synthesize messageListner;
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    _isRefresh = NO;
+    [self initView];
+    _dataModel = [AppCache loadCache:CACHE_BANG_BANG_MYBANGBANG];
+    if (!_dataModel) {
+        [_tableView launchRefreshing];
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(initData)
+                                                     name:@"MyHelpRefreshData"
+                                                   object:nil];
+    }
+    
+
+}
+
+- (void)initData
+{
+    if (_request) {
+        [_request cancel];
+    }
+    _request = [[TribeService shareInstance]
+     getAttentionTribeList:[CurrentAccount currentAccount].uid
+     shopname:_searchBar.text
+     OnSuccess:^(DataModel* dataModel) {
+         
+         if (dataModel.code == 200) {
+             if (_dataModel && !_isRefresh) {
+                 [_dataModel.data addObjectsFromArray:dataModel.data];
+                 _dataModel.code = dataModel.code;
+                 _dataModel.error = dataModel.error;
+                 _dataModel.nextCursor = dataModel.nextCursor;
+                 _dataModel.previousCursor = dataModel.previousCursor;
+             }
+             else
+                 _dataModel = dataModel;
+             
+             [AppCache saveCache:CACHE_BANG_BANG_MYBANGBANG Data:_dataModel];
+             
+             if (_dataModel.previousCursor == _dataModel.nextCursor) {
+                 _tableView.reachedTheEnd = YES;
+             }
+             else {
+                 _tableView.reachedTheEnd = NO;
+             }
+             [_tableView reloadData];
+         }
+         else {
+             if (dataModel.code != 4) {
+                 
+                 [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+             }
+             
+             _tableView.reachedTheEnd = NO;
+         }
+         [_tableView tableViewDidFinishedLoading];
+     }];
+}
+
+- (void)moreAction:(id)sender
+{
+    NSDictionary* dic = @{ ACTION_Controller_Name : self };
+    [self RouteMessage:ACTION_SHOW_BANGBANG_BANGLIST withContext:dic];
+}
+
+- (void)initView
+{
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    _tableView = [[EGOTableView alloc]
+                  initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH,
+                                           SCREEN_HEIGHT - TopBarHeight - 20 - TabBarHeight)
+                  style:UITableViewStylePlain];
+    _tableView.dataSource = self;
+    _tableView.delegate = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+    
+    [self.view addSubview:_tableView];
+ 
+    _searchBar = [[UISearchBar alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SearchBarHeight)];
+    
+    _searchBar.barTintColor = TableSeparatorColor;
+    _searchBar.delegate = self;
+    _searchBar.placeholder = @"搜索已围观的帮";
+    _searchBar.keyboardType = UIKeyboardAppearanceDefault;
+    [_searchBar.layer setBorderWidth:1];
+    [_searchBar.layer setBorderColor:TableSeparatorColor.CGColor];
+    _tableView.tableHeaderView = _searchBar; //把搜索框放在表头
+}
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView
+{
+    TribeListModel* listModel = _dataModel.data;
+    if (listModel.recommendTribelist.count == 0) {
+        return 1;
+    }
+    return 2;
+}
+
+- (NSInteger)tableView:(UITableView*)tableView
+ numberOfRowsInSection:(NSInteger)section
+{
+    if (section == 0) {
+        return ((TribeListModel *)_dataModel.data).attentionTribelist.count;
+    }
+    else
+        return ((TribeListModel *)_dataModel.data).recommendTribelist.count;
+}
+
+- (UITableViewCell*)tableView:(UITableView*)tableView
+        cellForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    
+    switch (indexPath.section) {
+        case 0: {
+            static NSString* reuseIdentifier = @"MYHelpCellReuseIdentifier";
+            MyFollowCell* cell =
+            [tableView dequeueReusableCellWithIdentifier:reuseIdentifier];
+            if (!cell) {
+                cell = [[MyFollowCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                           reuseIdentifier:reuseIdentifier];
+                cell.selectionStyle = UITableViewCellSelectionStyleNone;
+            }
+            TribeIndexModel* model = ((TribeListModel *)_dataModel.data).attentionTribelist[indexPath.row];
+            [cell bindTribel:model];
+            return cell;
+        }
+        case 1: {
+            static NSString* reuseIdentifier = @"RecommendCellReuseIdentifier";
+            RecommendCell* cell =
+            [tableView dequeueReusableCellWithIdentifier:reuseIdentifier];
+            if (!cell) {
+                cell = [[RecommendCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                            reuseIdentifier:reuseIdentifier];
+                cell.selectionStyle = UITableViewCellSelectionStyleNone;
+                cell.messageListner = self;
+            }
+            TribeIndexModel* model = ((TribeListModel *)_dataModel.data).recommendTribelist[indexPath.row];
+            [cell bindTribel:model];
+            return cell;
+        }
+        default:
+            return nil;
+    }
+}
+- (CGFloat)tableView:(UITableView*)tableView
+heightForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    if (indexPath.section == 0)
+        return 60;
+    else
+        return 75;
+}
+
+- (UIView*)tableView:(UITableView*)tableView
+viewForHeaderInSection:(NSInteger)section
+{
+    
+    UIView* headerView = nil;
+    
+    if (section == 0) {
+        headerView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, 33)];
+        [headerView setBackgroundColor:[UIColor whiteColor]];
+        UILabel* labelTitle =
+        [[UILabel alloc] initWithFrame:CGRectMake(10, 0, 100, 32)];
+        labelTitle.textAlignment = NSTextAlignmentLeft;
+        TribeListModel* listModel = _dataModel.data;
+        labelTitle.text = [NSString
+                           stringWithFormat:@"已关注%ld个帮", (long)listModel.count];
+        [labelTitle setFont:FONT_SIZE_15];
+        [labelTitle setTextColor:TableCellDescColor];
+        [headerView addSubview:labelTitle];
+    }
+    if (section == 1) {
+        headerView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, 43)];
+        [headerView setBackgroundColor:[UIColor whiteColor]];
+        UIView* separatorView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, 10)];
+        [separatorView setBackgroundColor:AllTableViewColor];
+        [headerView addSubview:separatorView];
+        UILabel* labelTitle =
+        [[UILabel alloc] initWithFrame:CGRectMake(10, 10, 70, 32)];
+        labelTitle.textAlignment = NSTextAlignmentLeft;
+        labelTitle.text = @"推荐的帮";
+        [labelTitle setFont:FONT_SIZE_15];
+        [labelTitle setTextColor:TableCellDescColor];
+        [headerView addSubview:labelTitle];
+        
+        UIImageView* _ivRecommand = [[UIImageView alloc]
+                                     initWithImage:[UIImage imageNamed:@"ic_recommend"]];
+        _ivRecommand.frame = CGRectMake(0, 0, 12, 12);
+        _ivRecommand.center = CGPointMake(labelTitle.frame.size.width + 12, labelTitle.center.y);
+        [headerView addSubview:_ivRecommand];
+    }
+    UIView* separatorView = [[UIView alloc]
+                             initWithFrame:CGRectMake(0, headerView.frame.size.height - 1,
+                                                      SCREEN_WIDTH, 1)];
+    [separatorView setBackgroundColor:TableSeparatorColor];
+    [headerView addSubview:separatorView];
+    return headerView;
+}
+
+- (UIView*)tableView:(UITableView*)tableView
+viewForFooterInSection:(NSInteger)section;
+{
+    UIView* footerView = nil;
+    if (section == 0) {
+        footerView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, 45)];
+        [footerView setBackgroundColor:[UIColor whiteColor]];
+        
+        UIView* btnView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, 45)];
+        
+        UILabel* labelTitle = [[UILabel alloc]
+                               initWithFrame:CGRectMake(btnView.center.x - 10, 0, 100, 45)];
+        labelTitle.textAlignment = NSTextAlignmentLeft;
+        labelTitle.text = @"加入更多帮";
+        [labelTitle setFont:FONT_SIZE_15];
+        [labelTitle setTextColor:TableCellDescColor];
+        [btnView addSubview:labelTitle];
+        
+        UIImageView* iv_add =
+        [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"ic_add"]];
+        iv_add.center = CGPointMake(btnView.center.x - iv_add.frame.size.width - 10,
+                                    btnView.center.y);
+        [btnView addSubview:iv_add];
+        
+        UITapGestureRecognizer* _tap =
+        [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                action:@selector(moreAction:)];
+        [btnView addGestureRecognizer:_tap];
+        
+        [footerView addSubview:btnView];
+    }
+    return footerView;
+}
+
+- (CGFloat)tableView:(UITableView*)tableView
+estimatedHeightForFooterInSection:(NSInteger)section
+{
+    if (section == 0) {
+        return 45;
+    }
+    return 0;
+}
+- (CGFloat)tableView:(UITableView*)tableView
+estimatedHeightForHeaderInSection:(NSInteger)section
+{
+    
+    if (section == 0) {
+        return 33;
+    }
+    return 43;
+}
+
+- (NSString*)tableView:(UITableView*)tableView
+titleForHeaderInSection:(NSInteger)section
+{
+    if (section == 0) {
+        return @"已关注的帮";
+    }
+    return @"推荐的帮";
+}
+
+- (void)tableView:(UITableView*)tableView
+didSelectRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    TribeIndexModel* model;
+    if (indexPath.section == 0)
+        model = ((TribeListModel *)_dataModel.data).attentionTribelist[indexPath.row];
+    else
+        model = ((TribeListModel *)_dataModel.data).recommendTribelist[indexPath.row];
+    
+    NSDictionary* dic = @{ ACTION_Controller_Name : self,
+                           ACTION_Controller_Data : @{BANGBANG_INDEX_TRIBEID:@(model.tribeId),BANGBANG_INDEX_SELECTINDEX:@(SELECTTOPIC)} };
+    [self RouteMessage:ACTION_SHOW_BANGBANG_BANGINDEX withContext:dic];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+#pragma mark -
+#pragma mark UISearchBarDelegate
+- (void)searchBar:(UISearchBar*)searchBar textDidChange:(NSString*)searchText
+{
+ 
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _isRefresh = YES;
+    [self initData];
+}
+
+//UISearchBarDelegate协议中定义的方法，当开始编辑时（搜索框成为第一响应者时）被调用。
+- (void)searchBarTextDidBeginEditing:(UISearchBar*)searchBar
+{
+    _searchBar.showsCancelButton = YES;
+}
+
+-(void)searchBarCancelButtonClicked:(UISearchBar *)searchBar{
+    
+    _searchBar.text = @"";
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+        
+    }
+    _isRefresh = YES;
+    [self initData];
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+}
+
+-(void)searchBarSearchButtonClicked:(UISearchBar *)searchBar{
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+}
+
+#pragma mark -
+#pragma mark EGOTableViewDelegate
+- (void)pullingTableViewDidStartRefreshing:(EGOTableHeaderView*)tableView
+{
+    
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _isRefresh = YES;
+    [self initData];
+}
+
+- (void)pullingTableViewDidStartLoading:(EGOTableView*)tableView
+{
+    _isRefresh = NO;
+    [self initData];
+}
+- (NSDate*)pullingTableViewRefreshingFinishedDate
+{
+    return [NSDate date];
+}
+- (NSDate*)pullingTableViewLoadingFinishedDate
+{
+    return [NSDate date];
+}
+
+#pragma mark -
+#pragma mark UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+    [_tableView tableViewDidScroll:scrollView];
+}
+- (void)scrollViewDidEndDragging:(UIScrollView*)scrollView
+                  willDecelerate:(BOOL)decelerate
+{
+    [_tableView tableViewDidEndDragging:scrollView];
+}
+
+#pragma mark RouteMessage Delegate
+- (void)RouteMessage:(NSString*)message withContext:(id)context
+{
+    if ([message isEqualToString:NOTIFICATION_BANGBANG_MYHELP]) {
+        
+        if (_dataModel) {
+            _dataModel.nextCursor = 0;
+            _dataModel.previousCursor = 0;
+        }
+        _isRefresh = YES;
+        [self initData];
+    }
+    else {
+        [self.messageListner RouteMessage:message withContext:context];
+    }
+}
+
+@end

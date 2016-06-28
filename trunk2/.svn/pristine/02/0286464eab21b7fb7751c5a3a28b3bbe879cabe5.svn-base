@@ -1,0 +1,249 @@
+//
+//  QianDaoViewController.m
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/7/3.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "QianDaoViewController.h"
+
+#import "TribeService.h"
+#import "QDCell.h"
+@interface QianDaoViewController () <UITableViewDataSource, UITableViewDelegate, EGOTableViewDelegate> {
+    DataModel* _dataModel;
+    UILabel* textlb;
+    UIButton* _btnqiandao;
+}
+
+@end
+
+@implementation QianDaoViewController
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self initView];
+    [self lodeinfo];
+    
+    _dataModel = [AppCache loadCache:[NSString stringWithFormat:@"%@_%ld",CACHE_BANG_BANGQIANDAO,(long)_tribeID]];
+    if (!_dataModel) {
+        
+        [self lodeData];
+    }
+    
+    
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+#pragma mark
+#pragma mark-- initView
+- (void)initView
+{
+
+    UILabel* titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 80, 14, SCREEN_WIDTH - 160, 17)];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    titleLabel.text = @"签到";
+    titleLabel.font = [UIFont systemFontOfSize:18];
+    titleLabel.textColor = COLOR_RED_DEFAULT_78;
+    self.navigationItem.titleView = titleLabel;
+    [self.view setBackgroundColor:AllTableViewColor];
+    UIView* bgview = [[UILabel alloc] initWithFrame:CGRectMake(0, 10, SCREEN_WIDTH, 120)];
+    [bgview setBackgroundColor:[UIColor whiteColor]];
+    [self.view addSubview:bgview];
+    textlb = [[UILabel alloc] initWithFrame:CGRectMake(10, 10, SCREEN_WIDTH - 20, 45)];
+    textlb.textAlignment = NSTextAlignmentCenter;
+    textlb.font = [UIFont systemFontOfSize:13];
+    textlb.textColor = [UIColor grayColor];
+    [self.view addSubview:textlb];
+
+    _btnqiandao = [UIButton buttonWithType:UIButtonTypeRoundedRect];
+    _btnqiandao.backgroundColor = TextColorRed;
+    _btnqiandao.frame = CGRectMake(20, 65, SCREEN_WIDTH - 40, 45);
+    [_btnqiandao.layer setCornerRadius:5];
+    [_btnqiandao addTarget:self action:@selector(qiandaoAction:) forControlEvents:UIControlEventTouchUpInside];
+
+    [_btnqiandao setTitle:@"立即签到" forState:UIControlStateNormal];
+    [_btnqiandao setTitle:@"立即签到" forState:UIControlStateHighlighted];
+    [_btnqiandao setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [self.view addSubview:_btnqiandao];
+
+    UIView* lbview = [[UILabel alloc] initWithFrame:CGRectMake(0, 140, SCREEN_WIDTH, 45)];
+    [lbview setBackgroundColor:[UIColor whiteColor]];
+    [self.view addSubview:lbview];
+
+    UILabel* lb = [[UILabel alloc] initWithFrame:CGRectMake(10, 140, SCREEN_WIDTH - 10, 45)];
+    lb.textAlignment = NSTextAlignmentLeft;
+    lb.text = @"签到记录：";
+    lb.font = [UIFont systemFontOfSize:18];
+    lb.textColor = [UIColor blackColor];
+    [self.view addSubview:lb];
+
+    _tableView = [[EGOTableView alloc] initWithFrame:CGRectMake(0, 186, SCREEN_WIDTH, SCREEN_HEIGHT - 150) style:UITableViewStylePlain];
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+
+    [_tableView setBackgroundColor:AllTableViewColor];
+
+    [self.view addSubview:_tableView];
+}
+- (void)lodeinfo
+{
+    [[TribeService shareInstance] getSignInfoA:[CurrentAccount currentAccount].uid
+                                       tribeId:_tribeID
+                                     OnSuccess:^(DataModel* dataModel) {
+                                         if (dataModel.code == 200) {
+                                             QDModel* model = dataModel.data;
+                                             NSString* info = [[[@"每签到1天，送帮币" stringByAppendingString:model.signMoney] stringByAppendingString:
+                                                                                                                                   [@"枚，共发放帮币" stringByAppendingString:model.priceTotal]] stringByAppendingString:@"枚!"];
+                                             textlb.text = info;
+                                             if ([model.flag isEqual:@"false"]) {
+                                                 _btnqiandao.backgroundColor = [UIColor grayColor];
+                                                 [_btnqiandao setTitle:@"已签到" forState:UIControlStateNormal];
+                                                 [_btnqiandao setTitle:@"已签到" forState:UIControlStateHighlighted];
+                                             }
+                                         }
+                                     }];
+}
+- (void)lodeData
+{
+    [[TribeService shareInstance] getSignInfoB:[CurrentAccount currentAccount].uid
+                                       tribeId:_tribeID
+                                    nextCursor:_dataModel.nextCursor
+                                     OnSuccess:^(DataModel* dataModel) {
+
+                                         if (dataModel.code == 200) {
+
+                                             if (_dataModel) {
+                                                 [(NSMutableArray*)_dataModel.data addObjectsFromArray:dataModel.data];
+                                                 _dataModel.code = dataModel.code;
+                                                 _dataModel.error = dataModel.error;
+                                                 _dataModel.nextCursor = dataModel.nextCursor;
+                                                 _dataModel.previousCursor = dataModel.previousCursor;
+                                             }
+                                             else
+                                                 _dataModel = dataModel;
+                                             [AppCache saveCache:[NSString stringWithFormat:@"%@_%ld",CACHE_BANG_BANGQIANDAO,(long)_tribeID] Data:_dataModel];
+
+                                             if (_dataModel.previousCursor == _dataModel.nextCursor) {
+                                                 _tableView.reachedTheEnd = YES;
+                                             }
+                                             else {
+                                                 _tableView.reachedTheEnd = NO;
+                                             }
+                                             [_tableView reloadData];
+                                         }
+                                         else {
+                                             [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+                                             _tableView.reachedTheEnd = NO;
+                                         }
+                                         [_tableView tableViewDidFinishedLoading];
+                                     }];
+}
+
+- (NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section
+{
+
+    NSArray* listModel = _dataModel.data;
+
+    return listModel.count;
+}
+
+- (CGFloat)tableView:(UITableView*)tableView heightForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    return 45;
+}
+- (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+
+    if (tableView != _tableView) {
+        return nil;
+    }
+
+    static NSString* identifier = @"QDidentifier";
+    QDCell* cell = [tableView dequeueReusableCellWithIdentifier:identifier];
+    if (cell == nil) {
+        cell = [[[NSBundle mainBundle] loadNibNamed:@"QDCell" owner:self options:nil] lastObject];
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    }
+    NSArray* listModel = _dataModel.data;
+    if (listModel.count > indexPath.row) {
+        QDModel* model = [listModel objectAtIndex:indexPath.row];
+        [cell bindUserModel:model];
+    }
+
+    return cell;
+}
+
+#pragma mark -
+#pragma mark EGOTableViewDelegate
+- (void)pullingTableViewDidStartRefreshing:(EGOTableHeaderView*)tableView
+{
+
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+        [((NSMutableArray*)_dataModel.data)removeAllObjects];
+    }
+    //    [self lodeData];
+    [self performSelector:@selector(lodeData) withObject:nil afterDelay:0.1f];
+}
+
+- (void)pullingTableViewDidStartLoading:(EGOTableView*)tableView
+{
+
+    //    [self lodeData];
+    [self performSelector:@selector(lodeData) withObject:nil afterDelay:0.1f];
+}
+- (NSDate*)pullingTableViewRefreshingFinishedDate
+{
+    return [NSDate date];
+}
+- (NSDate*)pullingTableViewLoadingFinishedDate
+{
+    return [NSDate date];
+}
+#pragma mark -
+#pragma mark UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+    [_tableView tableViewDidScroll:scrollView];
+}
+- (void)scrollViewDidEndDragging:(UIScrollView*)scrollView willDecelerate:(BOOL)decelerate
+{
+    [_tableView tableViewDidEndDragging:scrollView];
+}
+
+- (void)qiandaoAction:(id)send
+{
+
+    [[TribeService shareInstance] bangSignIn:[CurrentAccount currentAccount].uid
+                                     tribeId:_tribeID
+                                   OnSuccess:^(DataModel* dataModel) {
+                                       if (dataModel.code == 20106) {
+                                           [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+                                           _btnqiandao.backgroundColor = [UIColor grayColor];
+                                           [_btnqiandao setTitle:@"已签到" forState:UIControlStateNormal];
+                                           [_btnqiandao setTitle:@"已签到" forState:UIControlStateHighlighted];
+                                           if (_dataModel) {
+                                               _dataModel.nextCursor = 0;
+                                               _dataModel.previousCursor = 0;
+                                               [((NSMutableArray*)_dataModel.data)removeAllObjects];
+                                           }
+                                           [self lodeData];
+                                       }
+                                       else {
+
+                                           [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+                                       }
+                                   }];
+}
+@end

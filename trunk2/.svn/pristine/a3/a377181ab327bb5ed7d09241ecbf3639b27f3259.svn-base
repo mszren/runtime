@@ -1,0 +1,63 @@
+//
+//  CommentModel.h
+//  Common
+//
+//  Created by Owen on 15/5/23.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface CommentModel : NSObject <NSCoding>
+@property (nonatomic,assign) NSInteger commentStauts;
+@property (nonatomic,assign) NSInteger commentfloorNum;
+@property (nonatomic,strong) NSString * commentCreateTime;
+@property (nonatomic,strong) NSString *commentTip;
+
+@property (nonatomic,strong) NSString* replyUserId;
+@property (nonatomic,strong) NSString* replyFace;
+@property (nonatomic,strong) NSString* replyNickName;
+@property (nonatomic,assign) NSInteger rownum;
+
+@property (nonatomic,strong) NSString* commentFace;
+@property (nonatomic,strong) NSString* commentNickName;
+@property (nonatomic,assign) NSInteger discussId;
+@property (nonatomic,strong) NSString* replyCreateTime;
+
+@property (nonatomic,assign) NSInteger replyStauts;
+@property (nonatomic,assign) NSInteger commentUserId;
+@property (nonatomic,assign) NSInteger replyFloorNum;
+@property (nonatomic,strong) NSString* replyContentInfo;
+@property (nonatomic,strong) NSString* commentContentInfo;
+@property (nonatomic,strong) NSString* commentImageName;
+
+@property (nonatomic,copy)NSString *content;
+@property (nonatomic,strong) NSString * createTime;
+@property (nonatomic,copy)NSString *nickname;
+@property (nonatomic,assign)NSInteger userId;
+@property (nonatomic,strong)CommentModel *parentComment;
+@property (nonatomic,strong)NSArray *imgurl;
+@property (nonatomic,strong)NSString *face;
+@property (nonatomic,strong)NSArray *childCommentList;
+@property (nonatomic,assign) NSInteger contentHeight;
+@property (nonatomic,assign) NSInteger replyContentHeight;
+@property (nonatomic,assign) NSInteger imageHeight;
+
+@property (nonatomic,strong)NSArray *commentList;
+@property (nonatomic,strong)NSMutableArray *imageList;
+@property (nonatomic,assign)NSInteger  commentNum;
+@property (nonatomic,assign)NSInteger hitNum;
+@property (nonatomic,strong)NSString * replyContent;
+@property (nonatomic,assign)NSInteger replyId;
+
+@property (nonatomic,strong)NSString * commentContent;
+@property (nonatomic,strong)NSString *imageName;
+@property (nonatomic,assign)NSInteger  sortNumber;
+@property (nonatomic,strong)NSString * shopName;
+@property (nonatomic,assign)NSInteger publishId;
+
+
++ (CommentModel *)JsonParse:(NSDictionary *)dic;
+@end
+
+

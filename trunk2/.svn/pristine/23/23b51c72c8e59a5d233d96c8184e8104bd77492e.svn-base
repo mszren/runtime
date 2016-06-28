@@ -1,0 +1,182 @@
+//
+//  AppDelegate.m
+//  FamilysHelper
+//
+//  Created by 曹亮 on 14/11/3.
+//  Copyright (c) 2014年 FamilyTree. All rights reserved.
+//
+
+#import "AppDelegate.h"
+#import <Crashlytics/Crashlytics.h>
+#import "MobClick.h"
+
+#import "HomeController.h"
+#import "LoginController.h"
+
+#import "TabViewController.h"
+
+#import "OSSUnity.h"
+#import "XMPPManager.h"
+
+#import "DDLog.h"
+#import "DDTTYLogger.h"
+#import "DDFileLogger.h"
+#import "XMPPLogging.h"
+
+#import "UMSocial.h"
+#import "UMSocialSinaHandler.h"
+#import "UMSocialWechatHandler.h"
+#import "UMSocialConfig.h"
+#import "ShopsService.h"
+
+@interface AppDelegate ()
+
+@end
+
+static XMPPManager* xmppManager = nil;
+@implementation AppDelegate{
+    
+    ASIHTTPRequest *_selectRequest;
+}
+
+
+@synthesize window;
+@synthesize tabController;
+
++ (AppDelegate*)shareDelegate
+{
+    return (AppDelegate*)[UIApplication sharedApplication].delegate;
+}
+
+- (BOOL)application:(UIApplication*)application
+didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
+{
+    
+    [[SharedDaBase sharedDataBase] db];
+    
+    // xmppManager = [XMPPManager shareInstance];
+    
+    DDFileLogger* fileLogger = [[DDFileLogger alloc] init];
+    fileLogger.rollingFrequency = 60 * 60 * 24;
+    fileLogger.logFileManager.maximumNumberOfLogFiles = 7;
+    [DDLog addLogger:fileLogger withLogLevel:XMPP_LOG_FLAG_SEND_RECV];
+    [DDLog addLogger:[DDTTYLogger sharedInstance]
+        withLogLevel:XMPP_LOG_FLAG_SEND_RECV];
+    
+    if ([self checkIsExistUser]) {
+        [self loadHomeController];
+        // [xmppManager connect];
+    }
+    else {
+        [self loadLoginController];
+    }
+    
+    [Crashlytics startWithAPIKey:@"2964cce72aaa8182e1fccc9ba9e3965e041ca47d"];
+    [MobClick startWithAppkey:@"545b052efd98c52039003415"];
+    [UMSocialData setAppKey:@"558b6e7b67e58e833c006f6d"];
+    
+    [UMSocialSinaHandler
+     openSSOWithRedirectURL:@"http://sns.whalecloud.com/sina2/callback"];
+    
+    [UMSocialWechatHandler setWXAppId:@"wx352e935d3715247a"
+                            appSecret:@"d3ff113f047b48506290796d8ff05196"
+                                  url:@"http://t.cn/RwFRWYQ"];
+    
+    //由于苹果审核政策需求，建议大家对未安装客户端平台进行隐藏，在设置QQ、微信AppID之后调用下面的方法
+    [UMSocialConfig hiddenNotInstallPlatforms:@[
+                                                UMShareToQQ,
+                                                UMShareToQzone,
+                                                UMShareToWechatSession,
+                                                UMShareToWechatTimeline
+                                                ]];
+    
+    [self loadSelectViewData];
+    
+    return YES;
+}
+
+#pragma mark
+#pragma mark--SHop_SelectView_LoadData
+- (void)loadSelectViewData
+{
+    if (_selectRequest) {
+        [_selectRequest cancel];
+    }
+    
+    _selectRequest = [[ShopsService shareInstance] getTribeCategory:^(DataModel* dataModel) {
+        if (dataModel.code == 200) {
+            
+            [AppCache saveCache:CACHE_SHOP_INDEXSELECT Data:dataModel];
+            
+        }
+    }];
+}
+
+- (void)showTabbar:(BOOL)isShow
+{
+    if (isShow) {
+        [self.tabController showTabBar];
+    }
+    else {
+        [self.tabController hideTabBar];
+    }
+}
+
+- (BOOL)checkIsExistUser
+{
+    return [CurrentAccount isHasLogin];
+}
+
+- (void)loadLoginController
+{
+    LoginController* controller = [[LoginController alloc] init];
+    UINavigationController* loginNav = [[UINavigationController alloc] initWithRootViewController:controller];
+    self.loginWindow = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    self.loginWindow.rootViewController = loginNav;
+    [self.loginWindow makeKeyAndVisible];
+}
+
+- (void)loadHomeController
+{
+    [xmppManager connect];
+    self.tabController = [[TabViewController alloc] init];
+    self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+    self.window.rootViewController = self.tabController;
+    [self.window makeKeyAndVisible];
+}
+
+- (BOOL)application:(UIApplication*)application handleOpenURL:(NSURL*)url
+{
+    return [UMSocialSnsService handleOpenURL:url];
+}
+
+- (BOOL)application:(UIApplication*)application
+            openURL:(NSURL*)url
+  sourceApplication:(NSString*)sourceApplication
+         annotation:(id)annotation
+{
+    return [UMSocialSnsService handleOpenURL:url];
+}
+
+- (void)applicationWillResignActive:(UIApplication*)application
+{
+    //    [xmppManager disconnect];
+}
+
+- (void)applicationDidEnterBackground:(UIApplication*)application
+{
+}
+
+- (void)applicationWillEnterForeground:(UIApplication*)application
+{
+}
+
+- (void)applicationDidBecomeActive:(UIApplication*)application
+{
+}
+
+- (void)applicationWillTerminate:(UIApplication*)application
+{
+}
+
+@end

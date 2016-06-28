@@ -1,0 +1,227 @@
+//
+//  InteractionViewController.m
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/5/22.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "MemmberViewController.h"
+#import "SegmentBarView.h"
+#import "InteractionCell.h"
+#import "TribeService.h"
+#import "MemberCell.h"
+@interface MemmberViewController () <UITableViewDataSource, UITableViewDelegate, EGOTableViewDelegate> {
+    DataModel* _dataModel;
+    ASIHTTPRequest *_request;
+    BOOL _isRefresh;
+}
+
+@property (nonatomic, strong) UIImage* image;
+@end
+
+@implementation MemmberViewController {
+
+    NSMutableArray* _dataSource;
+}
+@synthesize messageListner;
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self initView];
+    
+    _dataModel = [AppCache loadCache:[NSString stringWithFormat:@"%@_%d",CACHE_BANG_ACTIVITYMEMBERLIST,_tribeID]];
+    if (!_dataModel) {
+        
+        [_tableView launchRefreshing];
+    }
+    
+    
+}
+
+#pragma mark
+#pragma mark-- initView
+- (void)initView
+{
+
+    UILabel* titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 80, 14, SCREEN_WIDTH - 160, 17)];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    titleLabel.text = @"帮成员";
+    titleLabel.font = [UIFont systemFontOfSize:18];
+    titleLabel.textColor = COLOR_RED_DEFAULT_78;
+    self.navigationItem.titleView = titleLabel;
+
+    _tableView = [[EGOTableView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT) style:UITableViewStylePlain];
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+
+    [_tableView setBackgroundColor:AllTableViewColor];
+
+    [self.view addSubview:_tableView];
+}
+
+- (void)lodeData
+{
+    if (_request) {
+        [_request cancel];
+    }
+    _request = [[TribeService shareInstance] getTribeUserList:_tribeID
+                                        nextCursor:_dataModel.nextCursor
+                                         OnSuccess:^(DataModel* dataModel) {
+
+                                             if (dataModel.code == 200) {
+
+                                                 if (_dataModel && !_isRefresh) {
+                                                     [(NSMutableArray*)_dataModel.data addObjectsFromArray:dataModel.data];
+                                                     _dataModel.code = dataModel.code;
+                                                     _dataModel.error = dataModel.error;
+                                                     _dataModel.nextCursor = dataModel.nextCursor;
+                                                     _dataModel.previousCursor = dataModel.previousCursor;
+                                                 }
+                                                 else
+                                                     _dataModel = dataModel;
+                                                 [AppCache saveCache:[NSString stringWithFormat:@"%@_%d",CACHE_BANG_ACTIVITYMEMBERLIST,_tribeID] Data:_dataModel];
+
+                                                 if (_dataModel.previousCursor == _dataModel.nextCursor) {
+                                                     _tableView.reachedTheEnd = YES;
+                                                 }
+                                                 else {
+                                                     _tableView.reachedTheEnd = NO;
+                                                 }
+                                                 [_tableView reloadData];
+                                             }
+                                             else {
+                                                 [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+                                                 _tableView.reachedTheEnd = NO;
+                                             }
+                                             [_tableView tableViewDidFinishedLoading];
+                                         }];
+}
+
+- (NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section
+{
+
+    NSArray* listModel = _dataModel.data;
+
+    return [self haveBannerCount:listModel];
+}
+
+- (CGFloat)tableView:(UITableView*)tableView heightForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    return 145;
+}
+
+- (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+
+    if (tableView != _tableView) {
+        return nil;
+    }
+    if (indexPath.section == 0) {
+        static NSString* memberIdentifier = @"memberIdentifier";
+        MemberCell* cell = [tableView dequeueReusableCellWithIdentifier:memberIdentifier];
+        if (!cell) {
+            cell = [[MemberCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:memberIdentifier];
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+            cell.messageListner = self;
+        }
+        NSArray* listModel = _dataModel.data;
+        NSMutableArray* alistModel = [self haveBannerArrayWithIndex:indexPath nsArray:listModel];
+
+        [cell bindUserModel:alistModel];
+        return cell;
+    }
+    return nil;
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+#pragma mark -
+#pragma mark EGOTableViewDelegate
+- (void)pullingTableViewDidStartRefreshing:(EGOTableHeaderView*)tableView
+{
+
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+        
+    }
+    _isRefresh = YES;
+    [self lodeData];
+  
+}
+
+- (void)pullingTableViewDidStartLoading:(EGOTableView*)tableView
+{
+
+    _isRefresh = NO;
+    [self lodeData];
+ 
+}
+- (NSDate*)pullingTableViewRefreshingFinishedDate
+{
+    return [NSDate date];
+}
+- (NSDate*)pullingTableViewLoadingFinishedDate
+{
+    return [NSDate date];
+}
+
+#pragma mark -
+#pragma mark UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+    [_tableView tableViewDidScroll:scrollView];
+}
+- (void)scrollViewDidEndDragging:(UIScrollView*)scrollView willDecelerate:(BOOL)decelerate
+{
+    [_tableView tableViewDidEndDragging:scrollView];
+}
+
+- (NSInteger)haveBannerCount:(NSArray*)listModel
+{
+    if (listModel.count > 0 && listModel) {
+        NSInteger count;
+        if ((listModel.count) % 3 != 0) {
+            count = (listModel.count) / 3 + 1;
+        }
+        else {
+            count = (listModel.count) / 3;
+        }
+
+        return count;
+    }
+    else {
+        return 0;
+    }
+}
+- (NSMutableArray*)haveBannerArrayWithIndex:(NSIndexPath*)indexPath nsArray:(NSArray*)nsArray
+{
+    //有banner
+    NSMutableArray* newArray = [[NSMutableArray alloc] initWithCapacity:0];
+    NSInteger oldCount = nsArray.count;
+    NSInteger row = indexPath.row + 1;
+
+    if ((oldCount) / 3 >= row) {
+        [newArray addObject:[nsArray objectAtIndex:3 * row - 3]];
+        [newArray addObject:[nsArray objectAtIndex:3 * row - 2]];
+        [newArray addObject:[nsArray objectAtIndex:3 * row - 1]];
+    }
+    else {
+        for (NSInteger i = 0; i < (oldCount) % 3; i++) {
+            [newArray addObject:[nsArray objectAtIndex:3 * row + i - 3]];
+        }
+    }
+
+    return newArray;
+}
+
+@end

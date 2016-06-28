@@ -1,0 +1,283 @@
+//
+//  LoginController.m
+//  FamilysHelper
+//
+//  Created by 曹亮 on 14/11/4.
+//  Copyright (c) 2014年 FamilyTree. All rights reserved.
+//
+
+#import "LoginController.h"
+#import "PhoneRegisterController.h"
+#import "XMPPManager.h"
+#import "UserService.h"
+#import "TribeService.h"
+#import "AppCache.h"
+#import "AppCacheConfig.h"
+#import "ForgetPwdController.h"
+
+static XMPPManager* xmppManager = nil;
+static UserService* userService;
+
+@interface LoginController () <UITextFieldDelegate>
+
+@end
+
+@implementation LoginController {
+    UITextField* _loginTF;
+    UITextField* _pwdTF;
+
+    UIButton* _loginBtn;
+    UIButton* _registerBtn;
+    UIButton* _forgetPwdBtn;
+    EGOImageView* _imageUrl;
+}
+
+- (id)init
+{
+    self = [super init];
+    if (self) {
+        xmppManager = [XMPPManager shareInstance];
+        userService = [UserService shareInstance];
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self setWhiteNavBg];
+    self.view.backgroundColor = COLOR_VIEW_BG;
+    
+    [self customUI];
+}
+
+#pragma mark
+#pragma mark-- CustomUI
+- (void)customUI
+{
+    UILabel* titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 80, 14, SCREEN_WIDTH - 160, 17)];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    titleLabel.text = @"登陆";
+    titleLabel.font = [UIFont systemFontOfSize:20];
+    titleLabel.textColor = COLOR_RED_DEFAULT_78;
+    self.navigationItem.titleView = titleLabel;
+    
+    [self registerForKeyboardNotifications];
+    _imageUrl = [[EGOImageView alloc]
+        initWithFrame:CGRectMake(SCREEN_WIDTH / 2 - 42, 40, 84, 84)];
+     _imageUrl.layer.cornerRadius = 42;
+    _imageUrl.clipsToBounds = YES;
+    _imageUrl.backgroundColor = [UIColor whiteColor];
+     [self.view addSubview:_imageUrl];
+
+    CurrentAccount* currentAccount = [AppCache loadCache:CACHE_SYSTEM_CURRENTUSER];
+    if (currentAccount.imagePath) {
+        
+        [_imageUrl setImage:[UIImage imageWithContentsOfFile:currentAccount.imagePath]];
+    }else{
+        NSData *dataImage = [NSData dataWithContentsOfURL:[NSURL URLWithString:currentAccount.face]];
+        UIImage *image = [UIImage imageWithData:dataImage];
+        _imageUrl.image = image;
+        
+    }
+        
+   
+
+    UIView* loginView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 173, SCREEN_WIDTH, 50)];
+    loginView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:loginView];
+
+    UIImageView* loginimage =
+        [[UIImageView alloc] initWithFrame:CGRectMake(10, 13, 24, 23)];
+    loginimage.image = [UIImage imageNamed:@"ic_accountLogin"];
+    [loginView addSubview:loginimage];
+
+    _loginTF = [[UITextField alloc] initWithFrame:CGRectMake(49, 17, 200, 15)];
+    _loginTF.delegate = self;
+    _loginTF.placeholder = @"请输入手机号";
+    _loginTF.keyboardType = UIKeyboardTypeNamePhonePad;
+    _loginTF.text = currentAccount.username;
+    
+    _loginTF.textColor = COLOR_GRAY_DEFAULT_30;
+    _loginTF.font = [UIFont systemFontOfSize:15];
+    [loginView addSubview:_loginTF];
+
+    //删除键
+    UIImageView* deleteImage = [[UIImageView alloc]
+        initWithFrame:CGRectMake(SCREEN_WIDTH - 26, 17, 16, 16)];
+    deleteImage.image = [UIImage imageNamed:@"ic_deleteNumber"];
+    deleteImage.userInteractionEnabled = YES;
+    [loginView addSubview:deleteImage];
+    UITapGestureRecognizer* deleteTap =
+        [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                action:@selector(onTap:)];
+    [deleteImage addGestureRecognizer:deleteTap];
+
+    UIView* pwdView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 224, SCREEN_WIDTH, 50)];
+    pwdView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:pwdView];
+
+    UIImageView* pwdImage =
+        [[UIImageView alloc] initWithFrame:CGRectMake(10, 13, 24, 23)];
+    pwdImage.image = [UIImage imageNamed:@"ic_password"];
+    [pwdView addSubview:pwdImage];
+
+    _pwdTF = [[UITextField alloc] initWithFrame:CGRectMake(49, 17, 200, 15)];
+    _pwdTF.delegate = self;
+    _pwdTF.placeholder = @"请输入密码";
+    _pwdTF.text = currentAccount.password;
+    _pwdTF.textColor = COLOR_GRAY_DEFAULT_30;
+    _pwdTF.secureTextEntry = YES;
+    _pwdTF.font = [UIFont systemFontOfSize:13];
+    _pwdTF.keyboardType = UIKeyboardTypeNamePhonePad;
+    [pwdView addSubview:_pwdTF];
+
+    //.登陆按钮
+    _loginBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    _loginBtn.frame = CGRectMake(10, 289, SCREEN_WIDTH - 20, 45);
+    [_loginBtn setTitle:@"登录" forState:UIControlStateNormal];
+    _loginBtn.titleLabel.font = [UIFont systemFontOfSize:16];
+    _loginBtn.backgroundColor = [UIColor orangeColor];
+    [_loginBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [_loginBtn addTarget:self
+                  action:@selector(loginBtnAction:)
+        forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_loginBtn];
+
+    //注册按钮
+    _registerBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    _registerBtn.frame = CGRectMake(SCREEN_WIDTH / 3, SCREEN_HEIGHT - TopBarHeight - 55, SCREEN_WIDTH / 3, 20);
+    [_registerBtn setTitle:@"账号注册" forState:UIControlStateNormal];
+    [_registerBtn setTitleColor:COLOR_GRAY_DEFAULT_30
+                       forState:UIControlStateNormal];
+    _registerBtn.titleLabel.font = [UIFont systemFontOfSize:13];
+    [_registerBtn addTarget:self
+                     action:@selector(registerBtnAction:)
+           forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_registerBtn];
+
+    //忘记密码
+    _forgetPwdBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    _forgetPwdBtn.frame = CGRectMake(SCREEN_WIDTH - 70, 349, 60, 20);
+    [_forgetPwdBtn setTitle:@"忘记密码?" forState:UIControlStateNormal];
+    _forgetPwdBtn.titleLabel.font = [UIFont systemFontOfSize:13];
+    [_forgetPwdBtn setTitleColor:COLOR_GRAY_DEFAULT_185
+                        forState:UIControlStateNormal];
+    [_forgetPwdBtn addTarget:self
+                      action:@selector(forgetBtnAction:)
+            forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_forgetPwdBtn];
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+}
+
+
+#pragma mark
+#pragma mark -- NSNotificationCenter
+
+-(void)registerForKeyboardNotifications{
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHidden:) name:UIKeyboardWillHideNotification object:nil];
+}
+
+-(void)keyboardWillShow:(NSNotification *)notify{
+    
+    [UIView animateWithDuration:0.25 animations:^{
+        
+        self.view.frame = CGRectMake(0,  -80, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }];
+}
+
+-(void)keyboardWillHidden:(NSNotification *)notify{
+    
+    [UIView animateWithDuration:0.25 animations:^{
+        self.view.frame = CGRectMake(0, TabBarHeight, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }];
+    
+    
+}
+
+
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
+    if (textField == _loginTF) {
+        NSString *validRegEx =@"^[0-9]*$";
+        
+        NSPredicate *regExPredicate =[NSPredicate predicateWithFormat:@"SELF MATCHES %@", validRegEx];
+        
+        BOOL myStringMatchesRegEx = [regExPredicate evaluateWithObject:string];
+        
+        if (myStringMatchesRegEx){
+            
+            return YES;
+        }
+        else
+        {
+            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"提示信息" message:@"这里只能输入数字"  delegate:nil cancelButtonTitle:@"好的，我知道了" otherButtonTitles: nil];
+            [alert show];
+        }
+        return NO;
+    }else
+        return YES;
+}
+
+
+#pragma mark
+#pragma mark-- btn Action method
+- (void)loginBtnAction:(id)sender
+{
+    [_loginTF resignFirstResponder];
+    [_pwdTF resignFirstResponder];
+
+    [userService
+          LoginBy:_loginTF.text
+         password:_pwdTF.text
+        OnSuccess:^(DataModel* dataModel) {
+
+            if (dataModel.code != 200) {
+                [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+            }
+            else {
+                CurrentAccount* currentAccount = dataModel.data;
+                currentAccount.password = _pwdTF.text;
+                currentAccount.username = _loginTF.text;
+                [AppCache saveCache:CACHE_SYSTEM_CURRENTUSER Data:currentAccount];
+                [[AppDelegate shareDelegate] loadHomeController];
+            }
+
+        }];
+}
+
+- (void)registerBtnAction:(id)sender
+{
+    PhoneRegisterController* controller = [[PhoneRegisterController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)forgetBtnAction:(id)sender
+{
+    ForgetPwdController* controller = [[ForgetPwdController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)onTap:(UITapGestureRecognizer*)sender
+{
+
+    _loginTF.text = nil;
+}
+
+- (BOOL)textFieldShouldReturn:(UITextField*)textField
+{
+
+    [_loginTF resignFirstResponder];
+    [_pwdTF resignFirstResponder];
+
+    return YES;
+}
+
+@end

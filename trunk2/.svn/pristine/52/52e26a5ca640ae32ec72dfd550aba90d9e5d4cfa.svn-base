@@ -1,0 +1,188 @@
+//
+//  APISDK+Person.m
+//  Common
+//
+//  Created by Owen on 15/5/23.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "PersonAPI.h"
+
+@implementation PersonAPI
+
+/**
+ *  我的互动  |
+ *
+ *  @param userId   用户ID
+ *  @param callback 回调函数
+ */
++ (ASIHTTPRequest*)getTribeInterActionByUserId:(NSInteger)userId typeId:(NSInteger)typeId
+                                         title:(NSString*)title
+                                    nextCursor:(NSInteger)nextCursor
+                                      callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"typeId" : [NSString stringWithFormat:@"%ld", (long)typeId],
+        @"title" : title,
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor]
+    };
+    return [self post:@"getTribeInterActionByUserId"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  经纪人认证
+ *
+ *  @param brokerName <#brokerName description#>
+ *  @param cardId     <#cardId description#>
+ *  @param callback   <#callback description#>
+ */
++ (ASIHTTPRequest*)addRecommendBrokerNew:(NSInteger)userId brokerName:(NSString*)brokerName brokerPhone:(NSString*)brokerPhone cardId:(NSString*)cardId
+                                callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"brokerName" : brokerName,
+        @"brokerPhone" : brokerPhone,
+        @"cardId" : cardId
+    };
+    return [self post:@"addRecommendBrokerNew"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
++ (ASIHTTPRequest*)getRecommendBrokerdatailNew:(NSInteger)userId callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+    };
+    return [self post:@"getRecommendBrokerdatailNew"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  我的收藏
+ *
+ *  @param userId     用户id
+ *  @param nextCursor 分页参数
+ *  @param title 检索条件
+ *  @param type 检索类型（1：互动 2：活动 3：商品）
+ *  @param callback   回调函数
+ */
++ (ASIHTTPRequest*)getMyCollectList:(NSString*)title type:(NSInteger)type nextCursor:(NSInteger)nextCursor userId:(NSInteger)userId callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"title" : [NSString stringWithFormat:@"%@", title],
+        @"type" : [NSString stringWithFormat:@"%ld", (long)type],
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor],
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId]
+    };
+    return [self post:@"getMyCollectList"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+/**
+ *  我领取的红包
+ *
+ *  @param userId     用户id
+ *  @param nextCursor 分页参数
+ *  @param callback   回调函数
+ */
++ (ASIHTTPRequest*)getNewMyGetRedPacket:(NSInteger)userId nextCursor:(NSInteger)nextCursor callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"user_id" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor]
+    };
+    return [self post:@"getNewMyGetRedPacket"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  我发送的红包
+ *
+ *  @param userId     用户id
+ *  @param nextCursor 分页参数
+ *  @param callback   回调函数
+ */
++ (ASIHTTPRequest*)getNewMyFaSongRedPacket:(NSInteger)userId nextCursor:(NSInteger)nextCursor callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"user_id" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor]
+    };
+    return [self post:@"getNewMyFaSongRedPacket"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  我的购
+ *
+ *  @param userId     用户id
+ *  @param nextCursor 分页用的
+ *  @param callback   回调函数
+ */
++ (ASIHTTPRequest*)getMyOrderList:(NSInteger)userId payStatus:(NSString*)payStatus nextCursor:(NSInteger)nextCursor callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor],
+        @"payStatus" : payStatus
+    };
+    return [self post:@"getMyOrderList"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+
+/**
+ *  批量删除订单
+ *
+ *  @param orderNum 订单编号
+ *  @param callback 回调函数
+ *
+ *  @return <#return value description#>
+ */
++ (ASIHTTPRequest*)deleteMyOrder:(NSString *)orderNum  callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+                             @"orderNum" : orderNum
+                             };
+    return [self post:@"deleteMyOrder"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
++ (ASIHTTPRequest*)getMyYaoyou:(NSInteger)userId callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId]
+    };
+    return [self post:@"getNewOneFriend"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+@end

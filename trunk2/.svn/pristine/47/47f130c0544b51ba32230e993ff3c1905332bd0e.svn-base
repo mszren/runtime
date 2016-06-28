@@ -1,0 +1,375 @@
+//
+//  APISDK+Shop.m
+//  Common
+//
+//  Created by Owen on 15/5/22.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "ShopAPI.h"
+
+@implementation ShopAPI
+
+/**
+ *  //商家首页
+ *
+ *  @param shopName   帮名（可空）
+ *  @param type       类型（可空)
+ *  @param nextCursor 游标
+ 
+ *  @param mapX       经度
+ *  @param mapY       纬度
+ *  @param callback
+ */
++ (ASIHTTPRequest*)getTribeGoodsList:(NSString*)shopName type:(NSString *)type nextcursor:(NSInteger)nextCursor mapx:(NSString*)mapX mapy:(NSString*)mapY callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"shopName" : shopName,
+        @"shoptype" : type,
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor],
+        @"mapX" : mapX,
+        @"mapY" : mapY };
+    return [self post:@"getTribeGoodsList"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+//商品详情
+/**
+ *  商品详情
+ *
+ *  @param goodsId   商品ID
+ *  @param userId   用户id
+ *  @param callback 回调参数
+ */
++ (ASIHTTPRequest*)getGoodsInfoV2:(NSInteger)goodsId userId:(NSInteger)userId callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"goodsId" : [NSString stringWithFormat:@"%ld", (long)goodsId],
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId] };
+    return [self post:@"getGoodsInfoV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+//添加评论
+/**
+ *  添加评论
+ *
+ *  @param objectId  对象id
+ *  @param type      类型
+ *  @param content   评论内容
+ *  @param userId    用户id
+ *  @param starNum   星数
+ *  @param parentId  父级评论id
+ *  @param imageUrls 图片路径
+ *  @param shopId    商铺id
+ *  @param orderId   订单id
+ *  @param callback  回调参数
+ */
++ (ASIHTTPRequest*)addOneCommentInfoV2:(NSInteger)objectId type:(NSInteger)type content:(NSString*)content userId:(NSInteger)userId starNum:(NSInteger)starNum parentId:(NSInteger)parentId imageUrls:(NSString*)imageUrls shopId:(NSInteger)shopId orderld:(NSInteger)orderId callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"objectId" : [NSString stringWithFormat:@"%ld", (long)objectId],
+        @"type" : [NSString stringWithFormat:@"%ld", (long)type],
+        @"content" : [NSString stringWithFormat:@"%@", content],
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"starNum" : [NSString stringWithFormat:@"%ld", (long)starNum],
+        @"parentId" : [NSString stringWithFormat:@"%ld", (long)parentId],
+        @"imageUrls" : [NSString stringWithFormat:@"%@", imageUrls],
+        @"shopId" : [NSString stringWithFormat:@"%ld", (long)shopId],
+        @"orderId" : [NSString stringWithFormat:@"%ld", (long)orderId] };
+
+    return [self post:@"addOneCommentInfoV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  评论列表
+ *
+ *  @param objectId   对象id
+ *  @param type       类型
+ *  @param nextCursor 游标
+ *  @param callback   回调参数
+ */
++ (ASIHTTPRequest*)getCommentInfoListV2:(NSInteger)objectId type:(NSInteger)type nextCursor:(NSInteger)nextCursor callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"objectId" : [NSString stringWithFormat:@"%ld", (long)objectId],
+        @"type" : [NSString stringWithFormat:@"%ld", (long)type],
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor] };
+    return [self post:@"getCommentInfoListV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+//我的订单
+/**
+ *  我的订单
+ *
+ *  @param userId    用户ID
+ *  @param nextCursor 游标
+ *  @param callback   回调参数
+ */
++ (ASIHTTPRequest*)getMyOrderList:(NSInteger)userId nextCursor:(NSInteger)nextCursor callback:(NetConnBlock)callback
+{
+
+    NSDictionary* params = @{ @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor] };
+    return [self post:@"getMyOrderList"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+//附近的商家
+/**
+ *  附近的商家
+ *
+ *  @param mapX       经度
+ *  @param mapY       纬度
+ *  @param nextCursor 游标
+ *  @param callback   回调参数
+ */
++ (ASIHTTPRequest*)getNearTribeGoodsList:(NSString*)shopName type:(NSString *)type nextcursor:(NSInteger)nextCursor mapx:(NSString*)mapX mapy:(NSString*)mapY callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"shopName" : shopName,
+        @"shoptype" : type,
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor],
+        @"mapX" : mapX,
+        @"mapY" : mapY };
+    return [self post:@"getNearTribeGoodsList"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+//
+/**
+ *  获取可使用帮币数
+ *
+ *  @param goodsId  商品id
+ *  @param userId   用户id
+ *  @param callback
+ */
++ (ASIHTTPRequest*)getCouldUseBangBiCountV2:(NSInteger)goodsId userId:(NSInteger)userId callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"goodsId" : [NSString stringWithFormat:@"%ld", (long)goodsId],
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId] };
+
+    return [self post:@"getCouldUseBangBiCountV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  获得帮分类
+ *
+ *  @param callback <#callback description#>
+ */
++ (ASIHTTPRequest*)getTribeCategory:(NetConnBlock)callback
+{
+    return [self post:@"getTribeCategory"
+               params:nil
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  检验用户帮币是否够用
+ *
+ *  @param count    可抵扣的帮币数
+ *  @param userId   用户id
+ *  @param callback
+ */
++ (ASIHTTPRequest*)checkBangBiCountV2:(NSInteger)count userId:(NSInteger)userId callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"count" : [NSString stringWithFormat:@"%ld", (long)count],
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId] };
+
+    return [self post:@"checkBangBiCountV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  生成订单
+ *
+ *  @param userId     用户id
+ *  @param goodsId    商品id
+ *  @param goodsName  商品名
+ *  @param totalPrice 总价格
+ *  @param leaveWords 说明
+ *  @param shopId     商铺id
+ *  @param nickname   昵称
+ *  @param callback
+ */
++ (ASIHTTPRequest*)saveGoodsOrderFormInfo:(NSInteger)userId goodsId:(NSInteger)goodsId shopId:(NSInteger)shopId callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"goodsId" : [NSString stringWithFormat:@"%ld", (long)goodsId],
+        @"shopId" : [NSString stringWithFormat:@"%ld", (long)shopId] };
+    return [self post:@"saveGoodsOrderFormInfo"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  支付订单
+ 
+ *
+ *  @param userId     用户id
+ *  @param orderNum   订单编号
+ *  @param isBb       是否使用帮币
+ *  @param buyBbTotal 可抵用帮币数
+ *  @param callback
+ */
++ (ASIHTTPRequest*)payGoodsOrderForm:(NSInteger)userId orderNum:(NSString*)orderNum isBb:(NSInteger)isBb payMoney:(NSInteger)paymoney leaveWords:(NSString*)leaveWords buyBbTotal:(NSInteger)buyBbTotal callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"orderNum" : orderNum,
+        @"isBb" : [NSString stringWithFormat:@"%ld", (long)isBb],
+        @"payMoney" : [NSString stringWithFormat:@"%ld", (long)paymoney],
+        @"leaveWords" : leaveWords,
+        @"buyBbTotal" : [NSString stringWithFormat:@"%ld", (long)buyBbTotal] };
+    return [self post:@"payGoodsOrderForm"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  支付宝支付后回调
+ *
+ *  @param orderNum   订单编号
+ *  @param resultCode 支付宝支付结果
+ *  @param sellerId   绑定的卖家支付宝账号
+ *  @param partner    签约合作者身份
+ *  @param totalfee   实付款
+ *  @param callback
+ */
++ (ASIHTTPRequest*)writePayInfoIntoMySql:(NSString*)orderNum resultCode:(NSInteger)resultCode sellerId:(NSString*)sellerId partner:(NSString*)partner totalfee:(NSString *)totalfee payflag:(NSString *)payflag callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"orderNum" : [NSString stringWithFormat:@"%ld", (long)orderNum],
+        @"resultCode" : [NSString stringWithFormat:@"%ld", (long)resultCode],
+        @"sellerId" : sellerId,
+        @"partner" : partner,
+        @"totalfee" :totalfee,
+        @"payflag":payflag};
+    return [self post:@"writePayInfoIntoMySql"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  取消支付
+ *
+ *  @param orderNum 订单编号
+ *  @param callback
+ */
++ (ASIHTTPRequest*)canclePay:(NSInteger)orderNum callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"orderNum" : [NSString stringWithFormat:@"%ld", (long)orderNum] };
+
+    return [self post:@"canclePay"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  更多热门商品
+ *
+ *  @param nextCursor 游标
+ *  @param callback
+ */
++ (ASIHTTPRequest*)getMoreGoodsFrontPageV2:(NSInteger)nextCursor callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor] };
+
+    return [self post:@"getMoreGoodsFrontPageV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  添加喜欢
+ *
+ *  @param userId   用户id
+ *  @param objectId 对象id
+ *  @param type     类型
+ *  @param callback
+ */
++ (ASIHTTPRequest*)objectAddLikeV2:(NSInteger)userId objectId:(NSInteger)objectId type:(NSInteger)type callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"objectId" : [NSString stringWithFormat:@"%ld", (long)objectId],
+        @"type" : [NSString stringWithFormat:@"%ld", (long)type] };
+    return [self post:@"objectAddLikeV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  取消订单
+ *
+ *  @param orderNum 订单编号
+ *  @param callback
+ */
++ (ASIHTTPRequest*)cancleOrderV2:(NSString*)orderNum callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"orderNum" : orderNum };
+
+    return [self post:@"cancleOrderV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+//推荐的商家
+/**
+ *  推荐的商家
+ *
+ *  @param mapX       经度
+ *  @param mapY       纬度
+ *  @param nextCursor 游标
+ *  @param callback   回调参数
+ */
+
++ (ASIHTTPRequest*)getRecommendTribeGoodsList:(NSString*)shopName type:(NSString *)type nextcursor:(NSInteger)nextCursor mapx:(NSString*)mapX mapy:(NSString*)mapY callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{ @"shopName" : shopName,
+        @"shoptype" : type,
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor],
+        @"mapX" : mapX,
+        @"mapY" : mapY };
+    return [self post:@"getRecommendTribeGoodsList"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+@end

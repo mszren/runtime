@@ -1,0 +1,97 @@
+//
+//  AddFriendsByPhoneController.m
+//  FamilysHelper
+//
+//  Created by 曹亮 on 15/3/20.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "AddFriendsByPhoneController.h"
+
+#import "AddFriendsSearchPhoneController.h"
+
+@interface AddFriendsByPhoneController ()
+
+@end
+
+@implementation AddFriendsByPhoneController
+
+#pragma mark
+#pragma mark-- init & delloc
+- (id)init
+{
+    self = [super init];
+    if (self) {
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self initializeNavTitleView:@"搜号码"];
+    [self initializeNavBackView];
+    self.view.backgroundColor = BGViewColor1;
+
+    UIBarButtonItem* rightItem = [[UIBarButtonItem alloc] initWithTitle:@"确定" style:UIBarButtonItemStylePlain target:self action:@selector(rightItemAction:)];
+    self.navigationItem.rightBarButtonItem = rightItem;
+
+    _searchTF = [[UITextField alloc] initWithFrame:CGRectMake(0, TopBarHeight, SCREEN_WIDTH, 60)];
+    _searchTF.textColor = [UIColor blackColor];
+    _searchTF.placeholder = @"手机号";
+    _searchTF.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:_searchTF];
+}
+
+#pragma mark
+#pragma mark-- nav item action
+- (void)rightItemAction:(id)sender
+{
+    if ([_searchTF.text isEqualToString:[CurrentAccount currentAccount].username]) {
+        [ToastManager showToast:@"自己不能邀请自己" withTime:Toast_Hide_TIME];
+        return;
+    }
+    ASIFormDataRequest* request = [[ASIFormDataRequest alloc] initWithURL:[NSURL URLWithString:FindFriendUrl]];
+    [request addPostValue:_searchTF.text forKey:@"tel_number"];
+
+    [request addRequestHeader:@"X-DJT-TOKEN" value:[CurrentAccount currentAccount].token];
+    [request buildRequestHeaders];
+
+    request.delegate = self;
+    request.timeOutSeconds = HTTP_TIMEOUT;
+    [request setDidFinishSelector:@selector(RequestResult:)];
+    [request setDidFailSelector:@selector(RequestErr:)];
+    [request startAsynchronous];
+}
+
+#pragma mark
+#pragma mark-- ASIHTTPRequestDelegate
+- (void)RequestResult:(ASIHTTPRequest*)aRequest
+{
+    NSData* data = [aRequest responseData];
+    //解析json
+    NSError* error = nil;
+    NSDictionary* totlaDic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableLeaves error:&error];
+
+    NSString* errCode = [totlaDic objectForKey:@"errCode"];
+
+    if (errCode && [errCode isEqualToString:@"000001"]) {
+        [[AppDelegate shareDelegate] loadLoginController];
+    }
+    else if (totlaDic) {
+        User* temp = [User JsonParse:totlaDic];
+
+        AddFriendsSearchPhoneController* controller = [[AddFriendsSearchPhoneController alloc] init];
+        controller.currentUser = temp;
+        [self.navigationController pushViewController:controller animated:YES];
+    }
+    else {
+        //TODO  用户手机号不存在，弹出短信
+    }
+}
+- (void)RequestErr:(ASIHTTPRequest*)aRequest
+{
+    [ToastManager showToast:Toast_NetWork_Bad withTime:Toast_Hide_TIME];
+}
+
+@end

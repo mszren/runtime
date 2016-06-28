@@ -1,0 +1,11 @@
+source 'https://github.com/artsy/Specs.git'
+source 'https://github.com/CocoaPods/Specs.git'
+
+platform :ios, ‘7.0’
+inhibit_all_warnings!
+
+# Pods
+    pod 'Masonry'
+    pod 'DZNEmptyDataSet'
+    pod 'JMStaticContentTableViewController', '~> 0.3.1'
+    pod 'MTStatusBarOverlay', '~> 0.9.1'

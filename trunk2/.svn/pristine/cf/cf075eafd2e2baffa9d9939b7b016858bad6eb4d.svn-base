@@ -1,0 +1,278 @@
+//
+//  FirstServe.m
+//  Common
+//
+//  Created by zhouwengang on 15/5/26.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "IndexService.h"
+#import "MsgModel.h"
+#import "IndexModel.h"
+#import "TopicModel.h"
+#import "TribeModel.h"
+#import "GoodsModel.h"
+#import "ActivityModel.h"
+#import "ShareModel.h"
+#import "IndexAPI.h"
+#import "RecommendModel.h"
+#import "QDModel.h"
+
+static IndexService* indexService;
+@implementation IndexService
++ (instancetype)shareInstance
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        indexService = [[self alloc] init];
+    });
+    return indexService;
+}
+
+/**
+ *  App首页
+ *
+ *  @param userId    用户id
+ *  @param onSuccess 回调参数
+ */
+- (ASIHTTPRequest*)getFrontPageInfoV2:(NSInteger)userId onSuccess:(onSuccess)onSuccess
+{
+
+    return [IndexAPI getFrontPageInfoV2:userId
+                               callback:^(DataModel* dataModel) {
+                                   if (dataModel.code == 200) {
+                                       dataModel.data = [IndexModel JsonParse:[dataModel.data objectAtIndex:0]];
+                                   }
+                                   onSuccess(dataModel);
+                               }];
+}
+
+/**
+ *  热门帮 换一组
+ *
+ *  @param userId    用户id
+ *  @param onSuccess 回调参数
+ */
+- (ASIHTTPRequest*)changeOtherTribeFrontPageV2:(NSInteger)userId onSuccess:(onSuccess)onSuccess
+{
+
+    return [IndexAPI changeOtherTribeFrontPageV2:userId
+                                        callback:^(DataModel* dataModel) {
+                                            NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                            for (id data in dataModel.data) {
+                                                [dataArry addObject:[TribeModel JsonParse:data]];
+                                            }
+                                            dataModel.data = dataArry;
+                                            onSuccess(dataModel);
+                                        }];
+}
+
+/**
+ *  APP首页 更多
+ *
+ *  @param type       类型
+ *  @param nextCursor 游标
+ *  @param onSuccess  回调参数
+ */
+- (ASIHTTPRequest*)getMorePublishContentFrontPageV2:(NSInteger)type tags:(NSString *)tags nextCursor:(NSInteger)nextCursor onSuccess:(onSuccess)onSuccess
+{
+
+    return [IndexAPI getMorePublishContentFrontPageV2:type
+                                           tags:tags
+                                           nextCursor:nextCursor
+                                             callback:^(DataModel* dataModel) {
+                                                 NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                                 for (id data in dataModel.data) {
+                                                     [dataArry addObject:[TopicModel JsonParse:data]];
+                                                 }
+                                                 dataModel.data = dataArry;
+                                                 onSuccess(dataModel);
+                                             }];
+}
+
+/**
+ *  推荐商家列表
+ *
+ *  @param mapX       经度
+ *  @param mapY       纬度
+ *  @param nextCursor 游标
+ *  @param onSuccess  回调参数
+ */
+- (ASIHTTPRequest*)getRecommendTribeGoodsList:(NSString*)mapX mapY:(NSString*)mapY nextCursor:(NSInteger)nextCursor onSuccess:(onSuccess)onSuccess
+{
+
+    return [IndexAPI getRecommendTribeGoodsList:mapX
+                                           mapY:mapY
+                                     nextCursor:nextCursor
+                                       callback:^(DataModel* dataModel) {
+                                           if (dataModel.code == 200) {
+                                               dataModel.data = [TribeModel JsonParse:[dataModel.data objectAtIndex:0]];
+                                           }
+                                           onSuccess(dataModel);
+                                       }];
+}
+
+/**
+ *  首页活动赚
+ *
+ *  @param userid    用户id
+ *  @param mid       分页用
+ *  @param onSuccess
+ */
+- (ASIHTTPRequest*)getActivityListV6:(NSInteger)userid mid:(NSInteger)mid onSuccess:(onSuccess)onSuccess
+{
+
+    return [IndexAPI getActivityListV6:userid
+                                   mid:mid
+                              callback:^(DataModel* dataModel) {
+                                  if (dataModel.code == 200) {
+
+                                      NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                      for (id data in dataModel.data) {
+                                          [dataArry addObject:[ActivityModel JsonParse:data]];
+                                      }
+                                      dataModel.data = dataArry;
+                                  }
+                                  onSuccess(dataModel);
+
+                              }];
+}
+
+/**
+ *  首页推荐赚
+ *
+ *  @param userid    用户id
+ *  @param mid       分页
+ *  @param onSuccess
+ */
+- (ASIHTTPRequest*)getRecommendListV6:(NSInteger)userid mid:(NSInteger)mid onSuccess:(onSuccess)onSuccess
+{
+    return [IndexAPI getRecommendListV6:userid
+                                    mid:mid
+                               callback:^(DataModel* dataModel) {
+                                   if (dataModel.code == 200) {
+                                       NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                       for (id data in dataModel.data) {
+                                           [dataArry addObject:[RecommendModel JsonParse:data]];
+                                       }
+                                       dataModel.data = dataArry;
+                                   }
+                                   onSuccess(dataModel);
+                               }];
+}
+
+/**
+ *  首页分享赚
+ *
+ *  @param userid    用户id
+ *  @param mid       分页
+ *  @param onSuccess
+ */
+- (ASIHTTPRequest*)getShareListV6:(NSInteger)userid mid:(NSInteger)mid onSuccess:(onSuccess)onSuccess
+{
+    return [IndexAPI getShareListV6:userid
+                                mid:mid
+                           callback:^(DataModel* dataModel) {
+                               if (dataModel.code == 200) {
+                                   NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                   for (id data in dataModel.data) {
+                                       [dataArry addObject:[ShareModel JsonParse:data]];
+                                   }
+                                   dataModel.data = dataArry;
+                               }
+                               onSuccess(dataModel);
+                           }];
+}
+
+/**
+ *  更多热门商品
+ *
+ *  @param nextCursor 游标
+ *  @param onSuccess  回调参数
+ */
+- (ASIHTTPRequest*)getMoreGoodsFrontPageV2:(NSInteger)nextCursor onSuccess:(onSuccess)onSuccess
+{
+    return [IndexAPI getMoreGoodsFrontPageV2:nextCursor
+                                    callback:^(DataModel* dataModel) {
+                                        if (dataModel.code == 200) {
+                                            NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+                                            for (id data in dataModel.data) {
+                                                [dataArry addObject:[GoodsModel JsonParse:data]];
+                                            }
+                                            dataModel.data = dataArry;
+                                        }
+                                        onSuccess(dataModel);
+                                    }];
+}
+/**
+ *  热门活动
+ *
+ *  @param onSuccess  回调参数
+ */
+- (ASIHTTPRequest*)getHomePageActivity:(onSuccess)onSuccess
+{
+    return [IndexAPI getHomePageActivity:^(DataModel *dataModel) {
+        onSuccess(dataModel);
+    }];
+}
+/**
+ *  热门活动（更多）
+ *
+ *  @param onSuccess  回调参数
+ */
+- (ASIHTTPRequest*)getMoreBangActivityList:(NSInteger)nextCursor title:(NSString*)title userId:(NSString*)userId  nSuccess:(onSuccess)onSuccess
+{
+    return [IndexAPI getMoreBangActivityList:nextCursor title:title userId:(NSString*)userId callback:^(DataModel *dataModel) {
+        NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+        for (id data in dataModel.data) {
+            [dataArry addObject:[ActivityModel JsonParse:data]];
+        }
+        dataModel.data = dataArry;
+        onSuccess(dataModel);
+    }];
+}
+
+/**
+ *  活动赚签到记录
+ *
+ *  @param userId     用户ID
+ *  @param activityId 活动ID
+ *  @param nextCursor 分页
+ *  @param callback   回调函数
+ *
+ *  @return
+ */
+- (ASIHTTPRequest*)getActivitySignInfo:(NSInteger)userId activityId:(NSInteger)activityId nextCursor:(NSInteger)nextCursor
+                             onSuccess:(onSuccess)onSuccess{
+    return [IndexAPI getActivitySignInfo:userId activityId:activityId nextCursor:nextCursor callback:^(DataModel *dataModel) {
+        
+        NSMutableArray* dataArry = [[NSMutableArray alloc] initWithCapacity:0];
+        for (id data in dataModel.data) {
+            [dataArry addObject:[QDModel JsonParse:data]];
+        }
+        dataModel.data = dataArry;
+        onSuccess(dataModel);
+    }];
+}
+
+
+/**
+ *  邀友赚规则
+ *
+ *  @param user_id
+ *  @param onSuccess
+ */
+- (ASIHTTPRequest*)newCountMoney:(NSInteger)user_id onSuccess:(onSuccess)onSuccess
+{
+    return [IndexAPI newCountMoney:user_id
+                          callback:^(DataModel* dataModel) {
+
+                              if (dataModel.code == 200) {
+
+                                  dataModel.data = [ShareModel JsonParse:[dataModel.data objectAtIndex:0]];
+                              }
+                              onSuccess(dataModel);
+                          }];
+}
+
+@end

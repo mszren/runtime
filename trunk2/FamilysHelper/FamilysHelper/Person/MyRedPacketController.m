@@ -1,0 +1,311 @@
+//
+//  MyRedPacketController.m
+//  FamilysHelper
+//
+//  Created by hubin on 15/7/24.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "MyRedPacketController.h"
+#import "EGOTableView.h"
+#import "UserService.h"
+#import "MyRedPacketCell.h"
+#import "MyRedPacketModel.h"
+#import <DZNEmptyDataSet/UIScrollView+EmptyDataSet.h>
+
+@interface MyRedPacketController ()<UITableViewDataSource, UITableViewDelegate, UISearchBarDelegate, EGOTableViewDelegate,DZNEmptyDataSetDelegate,DZNEmptyDataSetSource>{
+    ASIHTTPRequest* _request;
+    DataModel* _dataModel;
+    NSInteger types;
+    BOOL _iRefresh;
+}
+@property (nonatomic, strong) EGOTableView* tableView;
+@property (nonatomic, strong) UIView* typeView;
+@property (nonatomic, strong) UILabel* receiveText;
+@property (nonatomic, strong) UILabel* sendOutText;
+@property (nonatomic, strong) UIView* receiveView;
+@property (nonatomic, strong) UIView* sendOutView;
+@property (nonatomic, strong) UILabel* leftEndColor;
+@property (nonatomic, strong) UILabel* rightEndColor;
+
+@end
+
+@implementation MyRedPacketController
+
+- (void)viewDidLoad {
+    types=1;
+    [super viewDidLoad];
+    [self setWhiteNavBg];
+    [self initView];
+    [self loadData];
+}
+@synthesize messageListner;
+
+- (void)initView
+{
+    self.view.backgroundColor = [UIColor whiteColor];
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    
+    
+    UILabel* titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 80, 14, SCREEN_WIDTH - 160, 17)];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    titleLabel.text = @"我的红包";
+    titleLabel.font = [UIFont systemFontOfSize:20];
+    titleLabel.textColor = COLOR_RED_DEFAULT_78;
+    self.navigationItem.titleView = titleLabel;
+    
+    
+    
+    
+    CGFloat typewidh=SCREEN_WIDTH/20;
+
+    //类型View
+    _typeView=[[UIView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, typewidh+22)];
+    _typeView.backgroundColor=[UIColor whiteColor];
+    
+    
+    _receiveView=[[UIView alloc] initWithFrame:CGRectMake(0,0, typewidh*10, typewidh+22)];
+    UITapGestureRecognizer* receiveTapHit = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onReceive:)];
+    [_receiveView addGestureRecognizer:receiveTapHit];
+    [_typeView addSubview:_receiveView];
+    
+    _receiveText = [[UILabel alloc] initWithFrame:CGRectMake(typewidh*3,10, typewidh*4, typewidh)];
+    _receiveText.text = @"我领取的";
+    _receiveText.font = [UIFont systemFontOfSize:typewidh];
+    _receiveText.textColor=[UIColor blackColor];
+    [_receiveView addSubview:_receiveText];
+    
+    
+    
+    _sendOutView=[[UIView alloc] initWithFrame:CGRectMake(typewidh*10,0, typewidh*10, typewidh+22)];
+    UITapGestureRecognizer* sendOutTapHit = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onSendOut:)];
+    [_sendOutView addGestureRecognizer:sendOutTapHit];
+    [_typeView addSubview:_sendOutView];
+    _sendOutText = [[UILabel alloc] initWithFrame:CGRectMake(typewidh*3,10, typewidh*4, typewidh)];
+    _sendOutText.text = @"我发送的";
+    _sendOutText.font = [UIFont systemFontOfSize:typewidh];
+    _sendOutText.textColor=[UIColor blackColor];
+    [_sendOutView addSubview:_sendOutText];
+    [self.view addSubview:_typeView];
+    
+    
+    _leftEndColor=[[UILabel alloc] initWithFrame:CGRectMake(0, typewidh+19, _receiveView.bounds.size.width, 3)];
+    [_receiveView addSubview:_leftEndColor];
+    _rightEndColor=[[UILabel alloc] initWithFrame:CGRectMake(0, typewidh+21, _sendOutView.bounds.size.width, 1)];
+    [_sendOutView addSubview:_rightEndColor];
+
+    [self ColorSwitch];
+    
+
+    _tableView = [[EGOTableView alloc] initWithFrame:CGRectMake(0, typewidh+22, SCREEN_WIDTH, SCREEN_HEIGHT - TopBarHeight - 20)];
+    _tableView.backgroundColor = [UIColor whiteColor];
+    _tableView.backgroundView = nil;
+    _tableView.dataSource = self;
+    _tableView.delegate = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+    _tableView.emptyDataSetDelegate = self;
+    _tableView.emptyDataSetSource = self;
+    [self.view addSubview:_tableView];
+
+}
+
+-(void)ColorSwitch{
+    CGFloat typewidh=SCREEN_WIDTH/20;
+
+        if(types==1){
+            _receiveText.textColor=COLOR_RED_DEFAULT_78;
+            _sendOutText.textColor=[UIColor blackColor];
+            _leftEndColor.backgroundColor=COLOR_RED_DEFAULT_78;
+            _leftEndColor.frame=CGRectMake(0, typewidh+19, _receiveView.bounds.size.width, 3);
+            _rightEndColor.frame=CGRectMake(0, typewidh+21, _sendOutView.bounds.size.width, 1);
+            _rightEndColor.backgroundColor=[UIColor colorWithRed:50.0 / 255.0 green:50.0 / 255.0 blue:50.0 / 255.0 alpha:0.2];
+
+        }else{
+            _receiveText.textColor=[UIColor blackColor];
+            _sendOutText.textColor=COLOR_RED_DEFAULT_78;
+            _rightEndColor.frame=CGRectMake(0, typewidh+19, _receiveView.bounds.size.width, 3);
+            _leftEndColor.frame=CGRectMake(0, typewidh+21, _sendOutView.bounds.size.width, 1);
+            _leftEndColor.backgroundColor=[UIColor colorWithRed:50.0 / 255.0 green:50.0 / 255.0 blue:50.0 / 255.0 alpha:0.2];
+            _rightEndColor.backgroundColor=COLOR_RED_DEFAULT_78;
+        }
+
+}
+
+
+- (void)loadData{
+    if(_request){
+        [_request cancel];
+    }
+    if(types==1){
+
+        _request=[[UserService shareInstance] getNewMyGetRedPacket:[[CurrentAccount currentAccount] uid] nextCursor:_dataModel.nextCursor  OnSuccess:^(DataModel *dataModel) {
+            if(dataModel.code==200){
+                
+                if(_dataModel){
+                    if (_iRefresh)
+                        [_dataModel.data removeAllObjects];
+                    
+                    [_dataModel.data addObjectsFromArray:dataModel.data];
+                    _dataModel.code = dataModel.code;
+                    _dataModel.nextCursor = dataModel.nextCursor;
+                    _dataModel.error = dataModel.error;
+                }else{
+                    _dataModel=dataModel;
+                }
+                //[AppCache saveCache:CACHE_PERSON_MYCOLLECTION Data:_dataModel];
+            }
+            [_tableView reloadData];
+            [_tableView tableViewDidFinishedLoading];
+        }];
+    }else if(types==2){
+        _request=[[UserService shareInstance] getNewMyFaSongRedPacket:[[CurrentAccount currentAccount] uid] nextCursor:_dataModel.nextCursor  OnSuccess:^(DataModel *dataModel) {
+            if(dataModel.code==200){
+                
+                if(_dataModel){
+                    if (_iRefresh)
+                        [_dataModel.data removeAllObjects];
+                    
+                    [_dataModel.data addObjectsFromArray:dataModel.data];
+                    _dataModel.code = dataModel.code;
+                    _dataModel.nextCursor = dataModel.nextCursor;
+                    _dataModel.previousCursor = dataModel.previousCursor;
+                    _dataModel.error = dataModel.error;
+                }else{
+                    _dataModel=dataModel;
+                }
+                //[AppCache saveCache:CACHE_PERSON_MYCOLLECTION Data:_dataModel];
+            }
+            [_tableView reloadData];
+            [_tableView tableViewDidFinishedLoading];
+        }];
+    }
+}
+
+
+
+
+
+- (void)pullingTableViewDidStartRefreshing:(EGOTableHeaderView*)tableView
+{
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _iRefresh = YES;
+    [self loadData];
+    
+}
+
+- (void)pullingTableViewDidStartLoading:(EGOTableView*)tableView
+{
+    _iRefresh = NO;
+    [self loadData];
+}
+
+- (NSDate*)pullingTableViewRefreshingFinishedDate
+{
+    
+    return [NSDate date];
+}
+
+- (NSDate*)pullingTableViewLoadingFinishedDate
+{
+    
+    return [NSDate date];
+}
+- (CGFloat)tableView:(UITableView*)tableView
+heightForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    return 46;
+}
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView
+{
+    
+    return 1;
+}
+- (NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section
+{
+    return ((NSArray*)_dataModel.data).count;
+}
+- (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    static NSString* moreCellId = @"MyRedPacketCell";
+    
+    MyRedPacketCell* myRedPacketCell = [tableView dequeueReusableCellWithIdentifier:moreCellId];
+    if (!myRedPacketCell) {
+        myRedPacketCell = [[MyRedPacketCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:moreCellId];
+        myRedPacketCell.selectionStyle = UITableViewCellSelectionStyleNone;
+        myRedPacketCell.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    }
+    [myRedPacketCell bindData:_dataModel.data[indexPath.row]];
+    return myRedPacketCell;
+ }
+- (void)tableView:(UITableView*)tableView
+didSelectRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    MyRedPacketModel* myRedPacketModel=(MyRedPacketModel*)_dataModel.data[indexPath.row];
+    NSString* urlString=[NSString stringWithFormat:@"%@/ibsApp/page/hongbao/hb_xq.html?red_packet_id=%lu&userId=%lu",JAVA_API,(unsigned long)myRedPacketModel.redPacketId,(unsigned long)[CurrentAccount currentAccount].uid];
+    [messageListner RouteMessage:ACTION_SHOW_WEB_INFO withContext:@{ ACTION_Controller_Name : self, ACTION_Web_URL : urlString, ACTION_Web_Title : @"红包详情" }];
+
+}
+#pragma mark -
+
+#pragma mark UIScrollViewDelegate
+
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+    
+    [_tableView tableViewDidScroll:scrollView];
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView*)scrollView willDecelerate:(BOOL)decelerate
+{
+    
+    [_tableView tableViewDidEndDragging:scrollView];
+}
+
+-(NSAttributedString *)titleForEmptyDataSet:(UIScrollView *)scrollView{
+    NSString *text = @"没有红包哦!";
+    [_tableView hideFooterViewAndHeadViewState];
+    NSDictionary *attributes = @{NSFontAttributeName: [UIFont boldSystemFontOfSize:15],
+                                 NSForegroundColorAttributeName: COLOR_GRAY_DEFAULT_OPAQUE_b9};
+    return [[NSAttributedString alloc] initWithString:text attributes:attributes];
+    
+}
+
+-(UIImage *)imageForEmptyDataSet:(UIScrollView *)scrollView{
+    
+    return [UIImage imageNamed:@"ic_tywnr"];
+}
+
+#pragma mark
+#pragma mark--ButtonTaget
+
+- (void)onBtnBack:(UIBarButtonItem*)sender
+{
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+- (void)onReceive:(UIBarButtonItem*)receive
+{
+    if(types==1){
+        return;
+    }
+    types=1;
+    [self ColorSwitch];
+    [_tableView launchRefreshing];
+}
+- (void)onSendOut:(UIBarButtonItem*)sendOut
+{
+    if(types==2){
+        return;
+    }
+    types=2;
+    [self ColorSwitch];
+    [_tableView launchRefreshing];
+}
+
+@end

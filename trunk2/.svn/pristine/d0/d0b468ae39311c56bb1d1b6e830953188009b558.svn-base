@@ -1,0 +1,56 @@
+//
+//  MsgListModel.m
+//  Common
+//
+//  Created by Owen on 15/5/27.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "MsgListModel.h"
+#import "MsgModel.h"
+
+@implementation MsgListModel
+
+- (id)copyWithZone:(NSZone *)zone
+{
+    MsgListModel *copy = [[[self class] allocWithZone:zone] init];
+    copy.count = self.count;
+    copy.name = [self.name copy];
+    copy.lcdList = [self.lcdList copy];
+    return copy;
+}
+
+- (void)encodeWithCoder:(NSCoder *)aCoder{
+    [aCoder encodeInt64:self.count forKey:@"count"];
+    [aCoder encodeObject:self.name forKey:@"name"];
+    [aCoder encodeObject:self.lcdList forKey:@"lcdList"];
+}
+
+- (id)initWithCoder:(NSCoder *)aDecoder{
+    self = [super init];
+    if (self) {
+        self.count = [aDecoder decodeIntegerForKey:@"count"];
+        self.name = [aDecoder decodeObjectForKey:@"name"];
+        self.lcdList = [aDecoder decodeObjectForKey:@"lcdList"];
+    }
+    return self;
+}
+
++ (MsgListModel *)JsonParse:(NSDictionary *)dic{
+    MsgListModel * msgList = [[MsgListModel alloc] init];
+    
+    msgList.count = ([dic objectForKey:@"count"] != [NSNull null])&&([dic objectForKey:@"count"] !=nil) ? [[dic objectForKey:@"count"] integerValue] : 0;
+    msgList.name = ([dic objectForKey:@"name"] != [NSNull null])&&([dic objectForKey:@"name"] !=nil) ? [dic objectForKey:@"name"] : @"";
+
+    NSArray *lcdList=[dic objectForKey:@"lcdList"];
+    if (lcdList) {
+        NSMutableArray *dataArray=[[NSMutableArray alloc]initWithCapacity:0];
+        for (id data in lcdList) {
+            [dataArray addObject:[MsgModel JsonParse:data]];
+        }
+        msgList.lcdList=dataArray;
+    }
+    return msgList;
+}
+
+@end

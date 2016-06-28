@@ -1,0 +1,577 @@
+//
+//  ActivityDetailViewController.m
+//  FamilysHelper
+//
+//  Created by 我 on 15/7/2.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "ActivityDetailViewController.h"
+#import "TribeService.h"
+#import "TagSingTon.h"
+#import "ActivityModel.h"
+#import "ActivityListModel.h"
+#import "UIImageView+AFNetworking.h"
+#import "TribeService.h"
+#import "UIView+Toast.h"
+#import "BangIndexController.h"
+#import "ActivityMemberViewController.h"
+#import "CXPhotoBrowser.h"
+
+@interface ActivityDetailViewController () <UIScrollViewAccessibilityDelegate,
+    UIWebViewDelegate,EGOImageViewDelegate,CXPhotoBrowserDataSource,CXPhotoBrowserDelegate>
+
+@end
+
+@implementation ActivityDetailViewController {
+    ActivityModel* _activityModel;
+    UIScrollView* _scrollView;
+    UIWebView* _webView;
+    UIView* _introduceView;
+    UIButton* _btnPublish;
+    UILabel* _hiyNum;
+
+    UIWebView* _phoneWebView;
+    ASIHTTPRequest* _detailRequest;
+    ASIHTTPRequest* _hitRequest;
+    ASIHTTPRequest* _saveRequest;
+    MBProgressHUD* _hud;
+    UIButton* _hitButton;
+    
+    EGOImageView* _images;
+    
+    NSMutableArray *_imgsList;
+    CXPhotoBrowser *_browser;
+}
+@synthesize messageListner;
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    
+    _activityModel = [AppCache loadCache:[NSString stringWithFormat:@"%@_%d",CACHE_BANG_BANGACTIVITYDETAIL,_activityId]];
+    if (!_activityModel) {
+        
+        [self lodeData];
+    }
+    else
+        [self initView];
+    
+}
+
+#pragma mark
+#pragma mark-- LodeData
+- (void)lodeData
+{
+    _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    if (_detailRequest) {
+        [_detailRequest cancel];
+    }
+    _detailRequest = [[TribeService shareInstance] getBangActivityDetail:_activityId
+                                                               OnSuccess:^(DataModel* dataModel) {
+                                                                   if (dataModel.code == 200) {
+                                                                       _activityModel = dataModel.data;
+                                                                       [AppCache saveCache:[NSString stringWithFormat:@"%@_%d",CACHE_BANG_BANGACTIVITYDETAIL,_activityId] Data:_activityModel];
+                                                                       [self initView];
+                                                                   }
+
+                                                               }];
+}
+
+#pragma mark
+#pragma mark-- InitView
+- (void)initView
+{
+    _browser = [[CXPhotoBrowser alloc]initWithDataSource:self delegate:self];
+    _browser.wantsFullScreenLayout = YES;
+    _imgsList = [[NSMutableArray alloc]initWithCapacity:0];
+    
+    _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    _scrollView = [[UIScrollView alloc]
+        initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH,
+                          SCREEN_HEIGHT - TopBarHeight)];
+    _scrollView.delegate = self;
+    _scrollView.bounces = NO;
+    _scrollView.showsHorizontalScrollIndicator = NO;
+    _scrollView.showsVerticalScrollIndicator = NO;
+    _scrollView.userInteractionEnabled = YES;
+    [self.view addSubview:_scrollView];
+    _scrollView.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+
+    _images = [[EGOImageView alloc] initWithPlaceholderImage:[UIImage imageNamed:@"pic_default_320x215"]];
+    _images.frame = CGRectMake(0, 0, SCREEN_WIDTH, 160);
+    [_images setImageURL:[AppImageUtil getImageURL:_activityModel.image Height:_images.frame.size.height]];
+    _images.tag = 1;
+    _images.userInteractionEnabled = YES;
+    _images.delegate = self;
+    [_scrollView addSubview:_images];
+    
+    UITapGestureRecognizer *tapImage = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(onTapImage:)];
+    [_images addGestureRecognizer:tapImage];
+
+    //报名按钮
+    _btnPublish = [UIButton buttonWithType:UIButtonTypeCustom];
+    _btnPublish.frame = CGRectMake(0, 0, 40, 40);
+    _btnPublish.layer.cornerRadius = 20;
+    _btnPublish.clipsToBounds = YES;
+    [_btnPublish setTitle:@"报名" forState:UIControlStateNormal];
+    _btnPublish.titleLabel.font = [UIFont boldSystemFontOfSize:13];
+    [_btnPublish setTitleColor:[UIColor whiteColor]
+                      forState:UIControlStateNormal];
+    _btnPublish.center = CGPointMake(self.view.center.x, self.view.frame.size.height - 100);
+    [_btnPublish addTarget:self
+                    action:@selector(publishAction:)
+          forControlEvents:UIControlEventTouchUpInside];
+    [self.view addSubview:_btnPublish];
+    if (_activityModel.status == 0) {
+        _btnPublish.backgroundColor = [UIColor orangeColor];
+    }
+    else {
+        _btnPublish.backgroundColor = COLOR_GRAY_DEFAULT_OPAQUE_b9;
+    }
+
+    UIButton* statusButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    statusButton.frame = CGRectMake(0, 0, 47, 47);
+    if (_activityModel.activityStatus == 0) {
+        [statusButton setBackgroundImage:[UIImage imageNamed:@"ic_wks_hdz"]
+                                forState:UIControlStateNormal];
+    }
+    else if (_activityModel.activityStatus == 1) {
+
+        [statusButton setBackgroundImage:[UIImage imageNamed:@"ic_jxz_hdz"]
+                                forState:UIControlStateNormal];
+    }
+    else if (_activityModel.activityStatus == 2) {
+
+        [statusButton setBackgroundImage:[UIImage imageNamed:@"ic_yjs_hdz"]
+                                forState:UIControlStateNormal];
+    }
+    [_images addSubview:statusButton];
+
+    //---------------------------------------titileView----------------------------------------//
+    UIView* titileView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 160, SCREEN_WIDTH, 44)];
+    titileView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:titileView];
+
+    UILabel* titleLabel =
+        [[UILabel alloc] initWithFrame:CGRectMake(10, 0, SCREEN_HEIGHT - 125, 44)];
+    titleLabel.text = _activityModel.title;
+    titleLabel.font = [UIFont systemFontOfSize:15];
+    titleLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_1f;
+    [titileView addSubview:titleLabel];
+
+    UIButton* saveButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    saveButton.frame = CGRectMake(SCREEN_WIDTH - 112, 9, 50, 25);
+    [saveButton setTitle:@"收藏" forState:UIControlStateNormal];
+    saveButton.titleLabel.font = [UIFont systemFontOfSize:12];
+    saveButton.layer.borderWidth = 0.8;
+    saveButton.layer.cornerRadius = 4;
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    CGColorRef borderColorRef = CGColorCreate(colorSpace, (CGFloat[]){ 0.9, 0, 0, 1 });
+    saveButton.layer.borderColor = borderColorRef;
+    [saveButton setTitleColor:RedColor1 forState:UIControlStateNormal];
+    [saveButton addTarget:self
+                   action:@selector(onBtnSave:)
+         forControlEvents:UIControlEventTouchUpInside];
+    [titileView addSubview:saveButton];
+
+    _hitButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    _hitButton.frame = CGRectMake(SCREEN_WIDTH - 52, 10, 24, 24);
+    [_hitButton setImage:[UIImage imageNamed:@"ic_recommend"]
+               forState:UIControlStateNormal];
+    [_hitButton setImage:[UIImage imageNamed:@"ic_recommend_red"]
+                forState:UIControlStateSelected];
+//    _hitButton.layer.cornerRadius = 12;
+//    _hitButton.clipsToBounds = YES;
+//    _hitButton.layer.borderWidth = 0.4;
+//    CGColorSpaceRef colorSpace2 = CGColorSpaceCreateDeviceRGB();
+//    CGColorRef borderColorRef2 = CGColorCreate(colorSpace2, (CGFloat[]){ 0.1, 0.1, 0.1, 1 });
+//    _hitButton.layer.borderColor = borderColorRef2;
+
+    [_hitButton addTarget:self
+                  action:@selector(onBtnHit:)
+        forControlEvents:UIControlEventTouchUpInside];
+    [titileView addSubview:_hitButton];
+
+    _hiyNum =
+        [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 23, 0, 23, 44)];
+    _hiyNum.text = [NSString stringWithFormat:@"%ld", (long)_activityModel.hitNum];
+    _hiyNum.textColor = COLOR_GRAY_DEFAULT_OPAQUE_b9;
+    _hiyNum.font = [UIFont systemFontOfSize:15];
+    [titileView addSubview:_hiyNum];
+
+    //---------------------------------------memberView----------------------------------------//
+    UIView* memberView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 205, SCREEN_WIDTH, 74)];
+    memberView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:memberView];
+
+    UILabel* memberLabel =
+        [[UILabel alloc] initWithFrame:CGRectMake(10, 10, 70, 13)];
+    memberLabel.text = @"活动成员:";
+    memberLabel.font = [UIFont systemFontOfSize:15];
+    memberLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    [memberView addSubview:memberLabel];
+
+    UILabel* countLabel =
+        [[UILabel alloc] initWithFrame:CGRectMake(76, 10, 60, 13)];
+    countLabel.text = [NSString stringWithFormat:@"%ld人", (long)_activityModel.joinNum];
+    countLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_1f;
+    countLabel.font = [UIFont systemFontOfSize:15];
+    [memberView addSubview:countLabel];
+
+    UIScrollView* memberScroll =
+        [[UIScrollView alloc] initWithFrame:CGRectMake(0, 33, SCREEN_WIDTH, 32)];
+    memberScroll.delegate = self;
+    memberScroll.bounces = NO;
+    memberScroll.showsHorizontalScrollIndicator = NO;
+    memberScroll.showsVerticalScrollIndicator = NO;
+    [memberView addSubview:memberScroll];
+
+    for (NSInteger i = 0; i < _activityModel.activityApplyList.count; i++) {
+        EGOImageView* memberImage = [[EGOImageView alloc] initWithPlaceholderImage:[UIImage imageNamed:@"ic_accountLogin"]];
+        memberImage.frame = CGRectMake(42 * i + 20, 0, 32, 32);
+        memberImage.layer.cornerRadius = 16;
+        memberImage.clipsToBounds = YES;
+        ActivityListModel* activityList = (ActivityListModel*)_activityModel.activityApplyList[i];
+        [memberImage setImageURL:[AppImageUtil getImageURL:activityList.face Size:memberImage.frame.size]];
+        [memberScroll addSubview:memberImage];
+    }
+
+    UIButton* moreButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    moreButton.frame = CGRectMake(_activityModel.activityApplyList.count * 42 + 20, 0, 32, 32);
+    [moreButton setTitle:@"更多" forState:UIControlStateNormal];
+    moreButton.titleLabel.font = [UIFont systemFontOfSize:12];
+    moreButton.layer.cornerRadius = 16;
+    moreButton.clipsToBounds = YES;
+    [moreButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    [moreButton addTarget:self
+                   action:@selector(onBtnMember:)
+         forControlEvents:UIControlEventTouchUpInside];
+    moreButton.backgroundColor = COLOR_GRAY_DEFAULT_58;
+    [memberScroll addSubview:moreButton];
+
+    if ((moreButton.bounds.origin.x + 32) > (SCREEN_WIDTH - 10)) {
+
+        memberScroll.contentSize = CGSizeMake(moreButton.bounds.origin.x - SCREEN_WIDTH + 162, 0);
+    }
+
+    //---------------------------------------TimeView----------------------------------------//
+    UIView* timeView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 280, SCREEN_WIDTH, 74)];
+    timeView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:timeView];
+
+    UILabel* activityTime =
+        [[UILabel alloc] initWithFrame:CGRectMake(10, 10, 100, 13)];
+    activityTime.text = @"活动时间";
+    activityTime.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    activityTime.font = [UIFont systemFontOfSize:15];
+    [timeView addSubview:activityTime];
+
+    UILabel* startTime =
+        [[UILabel alloc] initWithFrame:CGRectMake(10, 33, SCREEN_WIDTH - 10, 13)];
+    startTime.text = _activityModel.startTime;
+    startTime.textColor = COLOR_GRAY_DEFAULT_OPAQUE_1f;
+    startTime.font = [UIFont systemFontOfSize:15];
+    [timeView addSubview:startTime];
+
+    UILabel* endTime =
+        [[UILabel alloc] initWithFrame:CGRectMake(10, 52, SCREEN_WIDTH - 10, 13)];
+    endTime.text = _activityModel.endTime;
+    endTime.textColor = COLOR_GRAY_DEFAULT_OPAQUE_1f;
+    endTime.font = [UIFont systemFontOfSize:15];
+    [timeView addSubview:endTime];
+
+    //---------------------------------------ShopView----------------------------------------//
+    UIView* shopView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 365, SCREEN_WIDTH, 90)];
+    shopView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:shopView];
+
+    EGOImageView* shopImage = [[EGOImageView alloc] initWithPlaceholderImage:[UIImage imageNamed:@"pic_default_40x40"]];
+    shopImage.frame = CGRectMake(10, 10, 32, 32);
+    [shopImage setImageURL:[AppImageUtil getImageURL:_activityModel.shopImages Size:shopImage.frame.size]];
+    shopImage.layer.cornerRadius = 16;
+    shopImage.clipsToBounds = YES;
+    [shopView addSubview:shopImage];
+
+    UILabel* shopName =
+        [[UILabel alloc] initWithFrame:CGRectMake(52, 0, 180, 36)];
+    shopName.text = _activityModel.shopName;
+    shopName.textColor = COLOR_GRAY_DEFAULT_OPAQUE_1f;
+    shopName.font = [UIFont systemFontOfSize:15];
+    shopName.userInteractionEnabled = YES;
+    [shopView addSubview:shopName];
+
+    UITapGestureRecognizer* bangTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onTapBangIndex:)];
+    [shopName addGestureRecognizer:bangTap];
+
+    UIButton* jumpShop = [UIButton buttonWithType:UIButtonTypeCustom];
+    jumpShop.frame = CGRectMake(SCREEN_WIDTH - 23, 11.5, 12, 13);
+    [jumpShop setBackgroundImage:[UIImage imageNamed:@"ic_arrow"]
+                        forState:UIControlStateNormal];
+    [shopView addSubview:jumpShop];
+
+    UILabel* graryLabel =
+        [[UILabel alloc] initWithFrame:CGRectMake(52, 36, SCREEN_WIDTH - 62, 1)];
+    graryLabel.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    [shopView addSubview:graryLabel];
+
+    UIImageView* addressImage =
+        [[UIImageView alloc] initWithFrame:CGRectMake(52, 48, 8, 11)];
+    addressImage.image = [UIImage imageNamed:@"ic_add_bang"];
+    [shopView addSubview:addressImage];
+
+    UILabel* addressLabel =
+        [[UILabel alloc] initWithFrame:CGRectMake(67, 48, 150, 13)];
+    addressLabel.text = _activityModel.address;
+    addressLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    addressLabel.font = [UIFont systemFontOfSize:15];
+    [shopView addSubview:addressLabel];
+
+    UIImageView* phoneImage =
+        [[UIImageView alloc] initWithFrame:CGRectMake(52, 68, 10, 13)];
+    phoneImage.image = [UIImage imageNamed:@"ic_tel20px_bang"];
+    [shopView addSubview:phoneImage];
+
+    UILabel* phoneLabel =
+        [[UILabel alloc] initWithFrame:CGRectMake(67, 68, 150, 13)];
+    phoneLabel.text = _activityModel.phone;
+    phoneLabel.userInteractionEnabled = YES;
+    phoneLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    phoneLabel.font = [UIFont systemFontOfSize:15];
+    [shopView addSubview:phoneLabel];
+    UITapGestureRecognizer* tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onTap:)];
+    [phoneLabel addGestureRecognizer:tap];
+
+    //---------------------------------------introduceView----------------------------------------//
+    _introduceView =
+        [[UIView alloc] initWithFrame:CGRectMake(0, 465, SCREEN_WIDTH, 120)];
+    _introduceView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:_introduceView];
+
+    UILabel* introduceLabel =
+        [[UILabel alloc] initWithFrame:CGRectMake(10, 10, 100, 13)];
+    introduceLabel.text = @"活动介绍";
+    introduceLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    introduceLabel.font = [UIFont systemFontOfSize:15];
+    [_introduceView addSubview:introduceLabel];
+
+    _webView = [[UIWebView alloc]
+        initWithFrame:CGRectMake(10, 33, SCREEN_WIDTH - 20, 20)];
+    _webView.delegate = self;
+    [_webView setScalesPageToFit:NO];
+    [_webView setUserInteractionEnabled:NO];
+    [_webView loadHTMLString:_activityModel.content baseURL:nil];
+    [_introduceView addSubview:_webView];
+
+    UILabel* introduceGray = [[UILabel alloc]
+        initWithFrame:CGRectMake(10, _webView.bounds.origin.y + 70,
+                          SCREEN_WIDTH - 20, 1)];
+    introduceGray.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    [_introduceView addSubview:introduceGray];
+}
+
+#pragma mark
+#pragma mark-- UIWebViewDelegate
+- (void)webViewDidFinishLoad:(UIWebView*)webView
+{
+    [_webView
+        stringByEvaluatingJavaScriptFromString:
+            @"var script = document.createElement('script');"
+             "script.type = 'text/javascript';"
+             "script.text = \"function ResizeImages() { "
+             "var myimg,oldwidth;"
+             "var maxwidth=310;" //缩放系数
+             "for(i=0;i <document.images.length;i++){"
+             "myimg = document.images[i];"
+             "if(myimg.width > maxwidth){"
+             "oldwidth = myimg.width;"
+             "myimg.width = maxwidth;"
+             "myimg.height = myimg.height * (maxwidth/oldwidth);"
+             "}"
+             "}"
+             "}\";"
+             "document.getElementsByTagName('head')[0].appendChild(script);"];
+
+    [_webView stringByEvaluatingJavaScriptFromString:@"ResizeImages();"];
+
+    CGSize actualSize = [_webView sizeThatFits:CGSizeZero];
+    CGRect newFrame = _webView.frame;
+    newFrame.size.height = actualSize.height;
+    _webView.frame = newFrame;
+
+    CGSize newsize = CGSizeMake(320, 565 + _webView.frame.size.height);
+
+    _scrollView.contentSize = newsize;
+    _hud.hidden = YES;
+}
+
+#pragma mark -
+#pragma mark EGOImageViewDelegate
+- (void)imageViewLoadedImage : (EGOImageView*)imageView
+{
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
+}
+- (void)imageViewFailedToLoadImage:(EGOImageView*)imageView error:(NSError*)error
+{
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
+}
+
+#define MSG_IMAGE_INDEX_CONTEXT_PHOTO1 1
+- (void)onTapImage:(UITapGestureRecognizer *)sender
+{
+    switch (sender.view.tag) {
+        case MSG_IMAGE_INDEX_CONTEXT_PHOTO1:
+            [self showImgs:0];
+            break;
+        default:
+            break;
+    }
+}
+
+- (void)showImgs:(NSUInteger)aIndex
+{
+     [_imgsList removeAllObjects];
+ 
+     CXPhoto* photo = [[CXPhoto alloc] initWithURL:[NSURL URLWithString:getOriginalImage(_activityModel.image)]];
+        
+     [_imgsList addObject:photo];
+    
+    [_browser setInitialPageIndex:aIndex];
+    _browser.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+    [self presentViewController:_browser animated:YES completion:^{
+        
+    }];
+}
+
+
+#pragma mark -
+#pragma mark CXPhotoBrowserDataSource
+- (NSUInteger)numberOfPhotosInPhotoBrowser:(CXPhotoBrowser*)photoBrowser
+{
+    return _imgsList.count;
+}
+- (id<CXPhotoProtocol>)photoBrowser:(CXPhotoBrowser*)photoBrowser photoAtIndex:(NSUInteger)index
+{
+    if (index < _imgsList.count)
+        return [_imgsList objectAtIndex:index];
+    return nil;
+}
+
+#pragma mark
+#pragma mark-- UIButtonAction
+- (void)onBtnSave:(UIButton*)sender
+{
+
+    if (_saveRequest) {
+        [_saveRequest cancel];
+    }
+    _saveRequest = [[TribeService shareInstance]
+        addMyCollect:[CurrentAccount currentAccount].uid
+                type:2
+            objectId:_activityModel.activityId
+           OnSuccess:^(DataModel* dataModel) {
+
+               if (dataModel.code == 202) {
+                   [_scrollView makeToast:@"收藏成功" duration:1.5 position:nil];
+               }
+               else if (dataModel.code == 20103) {
+
+                   [_scrollView makeToast:@"已经收藏" duration:1.5 position:nil];
+               }
+           }];
+}
+
+- (void)onBtnHit:(UIButton*)sender
+{
+
+    if (_hitRequest) {
+        [_hitRequest cancel];
+    }
+    _hitRequest = [[TribeService shareInstance]
+        priseInterBy:[CurrentAccount currentAccount].uid
+           objecteId:_activityModel.activityId
+           OnSuccess:^(DataModel* dataModel) {
+
+               if (dataModel.code == 202) {
+
+                   [ToastManager showToast:@"点赞成功" withTime:Toast_Hide_TIME];
+                   _hiyNum.text =
+                       [NSString stringWithFormat:@"%ld", (long)_activityModel.hitNum + 1];
+                    _hitButton.selected = YES;
+               }
+               else if (dataModel.code == 20014) {
+                       [ToastManager showToast:@"已经点过赞了,不能再点!" withTime:Toast_Hide_TIME];
+               }
+
+           }];
+}
+
+- (void)publishAction:(UIButton*)sender
+{
+
+    if (_activityModel.activityStatus == 0) {
+          [ToastManager showToast:@"活动尚未开始" withTime:Toast_Hide_TIME];
+    }
+    else if (_activityModel.activityStatus == 2) {
+          [ToastManager showToast:@"活动已经结束" withTime:Toast_Hide_TIME];
+    }
+    else if (_activityModel.activityStatus == 1) {
+
+        [[TribeService shareInstance]
+            joinBangActivity:[CurrentAccount currentAccount].uid
+                  activityId:_activityModel.activityId
+                   OnSuccess:^(DataModel* dataModel) {
+
+                       if (dataModel.code == 20024) {
+                           
+                           [ToastManager showToast:@"报名成功" withTime:Toast_Hide_TIME];
+                           [_btnPublish setBackgroundColor:COLOR_GRAY_DEFAULT_OPAQUE_b9];
+                       }
+                       else if (dataModel.code == 20023) {
+                           
+                           [ToastManager showToast:@"您已经报过名了" withTime:Toast_Hide_TIME];
+                       }
+
+                   }];
+    }
+}
+
+- (void)onBtnMember:(UIButton*)sender
+{
+    NSDictionary* dic = @{ ACTION_Controller_Name : self,
+        ACTION_Controller_Data : [NSString stringWithFormat:@"%ld", (long)_activityId] };
+    [self RouteMessage:ACTION_SHOW_BANGBANG_ACTIVITYDETAIL_MEMBER withContext:dic];
+}
+
+#pragma mark
+#pragma mark-- UITapGestureRecognizer
+- (void)onTapBangIndex:(UITapGestureRecognizer*)sender
+{
+    NSDictionary* dic = @{ ACTION_Controller_Name : self,
+        ACTION_Controller_Data : @{BANGBANG_INDEX_TRIBEID:@(_activityModel.shopId),BANGBANG_INDEX_SELECTINDEX:@(SELECTACTIVITY)} };
+
+    [self RouteMessage:ACTION_SHOW_BANGBANG_BANGINDEX withContext:dic];
+}
+
+- (void)onTap:(UITapGestureRecognizer*)sender
+{
+
+    NSURL* phoneUrl = [NSURL URLWithString:[NSString stringWithFormat:@"tel:%@", _activityModel.phone]];
+
+    if (_phoneWebView == nil) {
+        _phoneWebView = [[UIWebView alloc] initWithFrame:CGRectZero];
+    }
+    [_phoneWebView loadRequest:[NSURLRequest requestWithURL:phoneUrl]];
+
+}
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+@end

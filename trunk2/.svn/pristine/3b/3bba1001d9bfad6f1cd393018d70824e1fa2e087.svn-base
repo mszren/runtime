@@ -1,0 +1,121 @@
+//
+//  RecommendCell.m
+//  FamilysHelper
+//
+//  Created by Owen on 15/6/3.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "RecommendCell.h"
+#import "TribeService.h"
+
+@interface RecommendCell () {
+    EGOImageView* _ivLogo;
+    UILabel* _lblTitle;
+    UILabel* _lblContent;
+    UILabel* _lblAttentionNum;
+    UILabel* _lblActivitycount;
+    UIButton *_attention;
+    TribeIndexModel* _model;
+}
+@end
+
+@implementation RecommendCell
+
+- (void)attentionAction:(UIButton *)sender
+{
+
+    UIImageView* _ivTemp = (UIImageView*)sender;
+    [[TribeService shareInstance] addUserAttentionTribe:[CurrentAccount currentAccount].uid
+                                                tribeId:_model.tribeId
+                                              OnSuccess:^(DataModel* dataModel) {
+
+                                                  if (dataModel.code == 202) {
+                                                      [ToastManager showToast:@"围观成功" withTime:Toast_Hide_TIME];
+                                                      [[NSNotificationCenter defaultCenter] postNotificationName:@"MyHelpRefreshData" object:self];
+                                                  }
+                                              }];
+}
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString*)reuseIdentifier
+{
+    self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
+    if (self) {
+        self.userInteractionEnabled = YES;
+        _ivLogo = [[EGOImageView alloc] initWithPlaceholderImage:[UIImage imageNamed:@"pic_default_60x60"]];
+        _ivLogo.frame = CGRectMake(10, 10, 55, 55);
+        _ivLogo.layer.cornerRadius = 3.0;
+        _ivLogo.clipsToBounds = YES;
+        [self addSubview:_ivLogo];
+
+        _lblTitle = [[UILabel alloc] init];
+        [_lblTitle setFont:TableCellTitleFont];
+        [_lblTitle setTextColor:TableCellTitleColor];
+        _lblTitle.frame = CGRectMake(20 + _ivLogo.frame.size.width, 10, SCREEN_WIDTH - _ivLogo.frame.size.width - 70, 20);
+
+        [self addSubview:_lblTitle];
+
+        _lblContent = [[UILabel alloc] init];
+        [_lblContent setFont:TableCellDescFont];
+        [_lblContent setTextColor:TableCellDescColor];
+        _lblContent.frame = CGRectMake(_lblTitle.frame.origin.x, _lblTitle.frame.origin.y + _lblTitle.frame.size.height, SCREEN_WIDTH - _ivLogo.frame.size.width - 70, 20);
+        [self addSubview:_lblContent];
+
+        _lblAttentionNum = [[UILabel alloc] init];
+        [_lblAttentionNum setFont:TableCellDescFont];
+        [_lblAttentionNum setTextColor:TableCellDescColor];
+        _lblAttentionNum.frame = CGRectMake(_lblTitle.frame.origin.x, _lblContent.frame.origin.y + _lblContent.frame.size.height, 60, 20);
+
+        [self addSubview:_lblAttentionNum];
+
+        _lblActivitycount = [[UILabel alloc] init];
+        [_lblActivitycount setFont:TableCellDescFont];
+        [_lblActivitycount setTextColor:TableCellDescColor];
+        _lblActivitycount.frame = CGRectMake(_lblTitle.frame.origin.x + _lblAttentionNum.frame.size.width, _lblContent.frame.origin.y + _lblContent.frame.size.height, 60, 20);
+
+        [self addSubview:_lblActivitycount];
+
+        _attention = [UIButton buttonWithType:UIButtonTypeCustom];
+        _attention.frame = CGRectMake(0, 0, 40, 40);
+        _attention.center = CGPointMake(SCREEN_WIDTH - 10 - _attention.frame.size.width / 2, _ivLogo.center.y);
+        [_attention setImage:[UIImage imageNamed:@"ic_add@3x"] forState:UIControlStateNormal];
+        [_attention addTarget:self action:@selector(attentionAction:) forControlEvents:UIControlEventTouchUpInside];
+        
+        [self addSubview:_attention];
+    }
+    return self;
+}
+
+- (void)awakeFromNib
+{
+    // Initialization code
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated
+{
+    [super setSelected:selected animated:animated];
+
+    // Configure the view for the selected state
+}
+
+- (void)bindTribel:(TribeIndexModel*)model
+{
+    _model = model;
+    if (![model.shopImage isEqualToString:@""]) {
+        [_ivLogo setImageURL:[AppImageUtil getImageURL:model.shopImage Size:_ivLogo.frame.size]];
+    }
+
+    [_lblTitle setText:model.shopName];
+    [_lblContent setText:model.content];
+    [_lblAttentionNum setText:[NSString stringWithFormat:@"围观 %ld", (long)model.attentionNum]];
+    [_lblActivitycount setText:[NSString stringWithFormat:@"互动 %ld", (long)model.activitycount]];
+}
+
+- (void)drawRect:(CGRect)rect
+{
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    CGContextSetStrokeColorWithColor(context, TableSeparatorColor.CGColor);
+    CGContextStrokeRect(context, CGRectMake(10, rect.size.height, rect.size.width - 20, 1));
+}
+
+@end

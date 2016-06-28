@@ -1,0 +1,45 @@
+//
+//  APISDK+Shop.h
+//  Common
+//
+//  Created by Owen on 15/5/22.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "NetConnection.h"
+
+@interface ShopAPI : NetConnection
+
++ (ASIHTTPRequest*)getTribeGoodsList:(NSString*)shopName type:(NSString *)type nextcursor:(NSInteger)nextCursor mapx:(NSString*)mapX mapy:(NSString*)mapY callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)getGoodsInfoV2:(NSInteger)goodsId userId:(NSInteger)userId callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)getNearTribeGoodsList:(NSString*)shopName type:(NSString *)type nextcursor:(NSInteger)nextCursor mapx:(NSString*)mapX mapy:(NSString*)mapY callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)getRecommendTribeGoodsList:(NSString*)shopName type:(NSString *)type nextcursor:(NSInteger)nextCursor mapx:(NSString*)mapX mapy:(NSString*)mapY callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)addOneCommentInfoV2:(NSInteger)objectId type:(NSInteger)type content:(NSString*)content userId:(NSInteger)userId starNum:(NSInteger)starNum parentId:(NSInteger)parentId imageUrls:(NSString*)imageUrls shopId:(NSInteger)shopId orderld:(NSInteger)orderId callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)getCommentInfoListV2:(NSInteger)objectId type:(NSInteger)type nextCursor:(NSInteger)nextCursor callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)getTribeCategory:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)getCouldUseBangBiCountV2:(NSInteger)goodsId userId:(NSInteger)userId callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)checkBangBiCountV2:(NSInteger)count userId:(NSInteger)userId callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)saveGoodsOrderFormInfo:(NSInteger)userId goodsId:(NSInteger)goodsId shopId:(NSInteger)shopId callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)payGoodsOrderForm:(NSInteger)userId orderNum:(NSString*)orderNum isBb:(NSInteger)isBb payMoney:(NSInteger)paymoney leaveWords:(NSString*)leaveWords buyBbTotal:(NSInteger)buyBbTotal callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)writePayInfoIntoMySql:(NSString*)orderNum resultCode:(NSInteger)resultCode sellerId:(NSString*)sellerId partner:(NSString*)partner totalfee:(NSInteger)totalfee callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)canclePay:(NSInteger)orderNum callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)getMoreGoodsFrontPageV2:(NSInteger)nextCursor callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)objectAddLikeV2:(NSInteger)userId objectId:(NSInteger)objectId type:(NSInteger)type callback:(NetConnBlock)callback;
+
++ (ASIHTTPRequest*)cancleOrderV2:(NSString*)orderNum callback:(NetConnBlock)callback;
+
+@end

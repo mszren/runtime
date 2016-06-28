@@ -1,0 +1,59 @@
+//
+//  HomeViewController.h
+//  qeebuConference
+//
+//  Created by caoliang on 13-1-29.
+//  Copyright (c) 2013年 _qeebu_. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import <QuartzCore/QuartzCore.h>
+#import <AVFoundation/AVFoundation.h>
+#import <AudioToolbox/AudioToolbox.h>
+
+@protocol EGOTableHeaderViewDelegate<NSObject>
+@required
+- (void)egoRefreshTableHeaderDidTriggerRefresh;
+- (BOOL)egoRefreshTableHeaderDataSourceIsLoading;
+@optional
+- (NSDate*)egoRefreshTableHeaderDataSourceLastUpdated;
+@end
+
+@interface EGOTableHeaderView : UIView {
+    UILabel *_stateLabel;
+    UILabel *_dateLabel;
+    UIActivityIndicatorView *_activityView;
+    CALayer *_arrow;
+    BOOL _loading;
+}
+@property (nonatomic,getter = isLoading) BOOL loading;
+@property (nonatomic,getter = isAtTop) BOOL atTop;
+@property (nonatomic) PRState state;
+
+
+- (id)initWithFrame:(CGRect)frame atTop:(BOOL)top;
+
+- (void)updateRefreshDate:(NSDate *)date;
+- (void)setState:(PRState)state animated:(BOOL)animated;
+
+- (void) setArrowHide;
+
+///* @brief
+// *  最后一次刷新数据
+// */
+//- (void)refreshLastUpdatedDate;
+//- (void)egoRefreshScrollViewDidScroll:(UIScrollView *)scrollView;
+//- (void)egoRefreshScrollViewDidEndDragging:(UIScrollView *)scrollView;
+//- (void)egoRefreshScrollViewDataSourceDidFinishedLoading:(UIScrollView *)scrollView;
+
+/* @brief
+ * 设置加载状态
+ */
+//- (void)setState:(EGOPullRefreshState)aState;
+
+//audio
+//+ (void)boolplayRefreshSound:(BOOL)switcher;
+//+ (BOOL)getBoolplayRefreshSound;
+
+@end
+

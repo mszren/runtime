@@ -1,0 +1,57 @@
+//
+// Prefix header for all source files of the 'Common' target in the 'Common' project
+//
+
+#ifdef __OBJC__
+
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+
+#import "AppDelegate.h"
+
+#import "BaseNavController.h"
+#import "BaseViewController.h"
+
+#import "config.h"
+#import "CoreConfig.h"
+#import "Constaints.h"
+#import "CommonFunctions.h"
+#import "ToastManager.h"
+
+#import "CurrentAccount.h"
+
+#import "XMPPManager.h"
+#import "XMPPRoomManager.h"
+#import "XMPPRosterManager.h"
+#import "XMPPMessageManager.h"
+
+#import "NetManage.h"
+
+#import "EGOImageView.h"
+#import "EGOImageButton.h"
+#import "ASIHTTPRequest.h"
+#import "ASIFormDataRequest.h"
+#import "SharedDaBase.h"
+
+
+#import "NSDate_TimeZone.h"
+#import "NSStringAdditions.h"
+
+#import "MessageInfoModel.h"
+#import "UserMessageModel.h"
+
+#import "MessageManage.h"
+
+#import "FilePathHandler.h"
+#import "AFDownloadRequestOperation.h"
+
+#import "ActionConfig.h"
+#import "AppImageUtil.h"
+
+#import "AppCacheConfig.h"
+#import "AppCache.h"
+
+#import "PathHelper.h"
+#import "FileCache.h"
+
+#endif

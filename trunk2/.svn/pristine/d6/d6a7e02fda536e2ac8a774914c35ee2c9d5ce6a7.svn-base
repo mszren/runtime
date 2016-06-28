@@ -1,0 +1,15 @@
+//
+//  SearchPersonController.h
+//  FamilysHelper
+//
+//  Created by 曹亮 on 14/11/8.
+//  Copyright (c) 2014年 FamilyTree. All rights reserved.
+//
+
+@interface SearchPersonController : UIViewController
+
+- (IBAction)search:(id)sender;
+@property (strong, nonatomic) IBOutlet UITextField *account;
+
+- (IBAction)back:(id)sender;
+@end

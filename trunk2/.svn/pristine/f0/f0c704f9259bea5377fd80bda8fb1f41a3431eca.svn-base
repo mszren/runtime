@@ -1,0 +1,95 @@
+//
+//  SelectView.m
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/6/3.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "SelectView.h"
+#import "ShopsService.h"
+#import "TribeCategoryModel.h"
+
+
+@implementation SelectView{
+    NSMutableArray *_dataArry;
+    TribeCategoryModel *_categoryModel;
+    UIView *_backgroundView;
+}
+
+
+-(id)initWithFrame:(CGRect)frame{
+    self = [super initWithFrame:frame];
+    if (self) {
+   
+                self.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0.3];
+                _backgroundView = [[UIView alloc]initWithFrame:CGRectMake(SCREEN_WIDTH/3,0, SCREEN_WIDTH/3*2, 110 )];
+                _backgroundView.backgroundColor = [UIColor whiteColor];
+                [self addSubview:_backgroundView];
+                
+                UILabel* graylabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 15, 2, 20)];
+                graylabel.backgroundColor = [UIColor grayColor];
+                [_backgroundView addSubview:graylabel];
+                UILabel* selectLabel = [[UILabel alloc] initWithFrame:CGRectMake(30, 15, 50, 20)];
+                selectLabel.text = @"筛选";
+                selectLabel.font = [UIFont systemFontOfSize:15];
+                [_backgroundView addSubview:selectLabel];
+                
+                NSArray* selectTitle = @[ @"默认", @"最近", @"推荐" ];
+                for (NSInteger i = 0; i < 3; i++) {
+                    _selectButton = [UIButton buttonWithType:UIButtonTypeCustom];
+                    _selectButton.frame = CGRectMake(_backgroundView.frame.size.width/3*i, 40, _backgroundView.frame.size.width/3, 30);
+                    _selectButton.tag = 100 + i;
+                    _selectButton.titleLabel.font = [UIFont systemFontOfSize:13];
+                    [_selectButton setTitle:selectTitle[i] forState:UIControlStateNormal];
+                    [_selectButton setTitleColor:COLOR_GRAY_DEFAULT_OPAQUE_7a forState:UIControlStateNormal];
+                    [_selectButton setTitleColor:[UIColor orangeColor] forState:UIControlStateSelected];
+                    [_backgroundView addSubview:_selectButton];
+                }
+                
+                UILabel* blueLabel2 = [[UILabel alloc] initWithFrame:CGRectMake(10, 75, 2, 20)];
+                blueLabel2.backgroundColor = [UIColor blueColor];
+                [_backgroundView addSubview:blueLabel2];
+                UILabel* typeLabel = [[UILabel alloc] initWithFrame:CGRectMake(30, 75, 50, 20)];
+                typeLabel.text = @"类型";
+                typeLabel.font = [UIFont systemFontOfSize:15];
+                [_backgroundView addSubview:typeLabel];
+                
+    }
+    return self;
+}
+
+-(void)bindTribeCategory:(DataModel *)model{
+    
+    _dataArry = [[NSMutableArray alloc]initWithCapacity:0];
+    [_dataArry addObject:@"全部"];
+    for (NSInteger i =  0; i < ((NSArray *)model.data).count; i++) {
+        _categoryModel = ((NSArray *)model.data)[i];
+        [_dataArry addObject:_categoryModel.tribeName];
+    }
+    
+    for (NSInteger j = 0; j < _dataArry.count; j++) {
+        
+        _typeButton = [UIButton buttonWithType:UIButtonTypeCustom];
+      
+        _typeButton.frame = CGRectMake(0, 100 + j*30,_backgroundView.frame.size.width, 30);
+
+        _typeButton.tag = 200 + j;
+        _typeButton.titleLabel.font = [UIFont systemFontOfSize:13];
+        [_typeButton setTitle:_dataArry[j] forState:UIControlStateNormal];
+        [_typeButton setTitleColor:COLOR_GRAY_DEFAULT_OPAQUE_7a forState:UIControlStateNormal];
+        [_typeButton setTitleColor:[UIColor orangeColor] forState:UIControlStateSelected];
+        
+        [_backgroundView addSubview:_typeButton];
+    }
+    _oldSelectButton = (UIButton*)[self viewWithTag:100];
+    _oldSelectButton.selected = YES;
+    
+    _oldTypeButton = (UIButton*)[self viewWithTag:200];
+    _oldTypeButton.selected = YES;
+    _backgroundView.frame = CGRectMake(SCREEN_WIDTH/3,0, SCREEN_WIDTH/3*2, 110 + (((NSArray *)model.data).count + 1)*30 );
+    
+}
+
+
+@end

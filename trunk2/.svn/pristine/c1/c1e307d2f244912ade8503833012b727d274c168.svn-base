@@ -1,0 +1,125 @@
+//
+//  SettingViewController.m
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/6/9.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "SettingViewController.h"
+#import "ResetpwdController.h"
+#import "MyDatePicker.h"
+@interface SettingViewController ()<MyDatePickerDelegate>{
+MyDatePicker* _datePicker;
+    NSInteger tag;
+}
+
+@end
+NSString* version;
+@implementation SettingViewController
+@synthesize messageListner;
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self setWhiteNavBg];
+    [self initializeWhiteBackgroudView:@"设置"];
+    [self initializeNavBackView];
+    self.view.backgroundColor = COLOR_VIEW_BG;
+    NSDictionary* infoDictionary = [[NSBundle mainBundle] infoDictionary];
+    version = [infoDictionary objectForKey:@"CFBundleShortVersionString"];
+    _versioncode.text = version;
+
+    UITapGestureRecognizer* clearCacheGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(ac_clearCache:)];
+    [self.clearcache addGestureRecognizer:clearCacheGesture];
+
+    UITapGestureRecognizer* resetpwdGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(ac_resetpwd:)];
+    [self.resetpwd addGestureRecognizer:resetpwdGesture];
+    UITapGestureRecognizer* aboutGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(ac_about:)];
+    [self.about addGestureRecognizer:aboutGesture];
+    UITapGestureRecognizer* setstarttimeGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(ac_setstarttime:)];
+    [self.setstarttime addGestureRecognizer:setstarttimeGesture];
+    UITapGestureRecognizer* setendtimeGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(ac_setendtime:)];
+    [self.setendtime addGestureRecognizer:setendtimeGesture];
+    UITapGestureRecognizer* versioncodeGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(ac_versioncode:)];
+    [self.versioncode addGestureRecognizer:versioncodeGesture];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)ac_clearCache:(id)sender
+{
+    if ([AppCache clearCache]) {
+        [ToastManager showToast:@"清除成功！" withTime:Toast_Hide_TIME];
+    }
+    else
+        [ToastManager showToast:@"清除失败！" withTime:Toast_Hide_TIME];
+}
+
+- (void)ac_resetpwd:(id)sender
+{
+    ResetpwdController* controller = [[ResetpwdController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
+}
+- (void)ac_about:(id)sender
+{
+    NSString* _strURL = [NSString stringWithFormat:@"%@/ibsApp/page/login/aboutMe.html?userId=%lu", JAVA_API, (unsigned long)[CurrentAccount currentAccount].uid];
+    [self RouteMessage:ACTION_SHOW_WEB_INFO
+           withContext:@{ ACTION_Controller_Name : self,
+               ACTION_Web_URL : _strURL,
+               ACTION_Web_Title : @"关于我们" }];
+}
+- (void)touchesBegan:(NSSet*)touches withEvent:(UIEvent*)event
+{
+    
+        [_datePicker popDatePicker];
+    
+}
+//回调，字符串可自行进行截取
+- (void)MyDatePickerDidConfirm:(NSString*)confirmString
+{
+    if (tag==1) {
+       _starttime.text = confirmString;
+
+    }else if (tag==2){
+        _endtime.text = confirmString;
+
+    }
+    
+   
+    
+}
+- (void)ac_setstarttime:(id)sender
+{
+    NSDate *now = [NSDate date];
+    _datePicker = [[MyDatePicker alloc] initWithSelectTitle:@"选择日期" NSDate:now viewOfDelegate:self.view delegate:self];
+    tag=1;
+    _datePicker.isBeforeTime = YES; //(是否可选择以前时间)
+    _datePicker.theTypeOfDatePicker = 1; //(datePicker显示类别，只写了三种主流)
+    [_datePicker pushDatePicker];
+}
+
+- (void)ac_setendtime:(id)sender
+{
+    NSDate *now = [NSDate date];
+    _datePicker = [[MyDatePicker alloc] initWithSelectTitle:@"选择日期" NSDate:now viewOfDelegate:self.view delegate:self];
+    tag=2;
+    _datePicker.isBeforeTime = YES; //(是否可选择以前时间)
+    
+    _datePicker.theTypeOfDatePicker = 1; //(datePicker显示类别，只写了三种主流)
+    [_datePicker pushDatePicker];
+}
+- (void)ac_versioncode:(id)sender
+{
+    [ToastManager showToast:@"检查更新" withTime:Toast_Hide_TIME];
+}
+- (IBAction)loginOut:(id)sender
+{
+    [CurrentAccount removeAccount];
+    [[AppDelegate shareDelegate] loadLoginController];
+}
+@end

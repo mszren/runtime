@@ -1,0 +1,31 @@
+//
+//  TagSingTon.m
+//  FamilysHelper
+//
+//  Created by 我 on 15/7/2.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "TagSingTon.h"
+
+static TagSingTon *tagSing = nil;
+@implementation TagSingTon
+
++(TagSingTon *)sharedInstance{
+    if (tagSing == nil) {
+        tagSing  = [[TagSingTon alloc]init];
+    }
+    return tagSing;
+}
+
+-(id)init{
+    self = [super init];
+    if (self) {
+        self.tagName = [[NSString alloc]init];
+    }
+    return self;
+}
+
+
+
+@end

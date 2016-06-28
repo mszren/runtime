@@ -1,0 +1,18 @@
+//
+//  ChatHomeFirstCell.h
+//  FamilysHelper
+//
+//  Created by 曹亮 on 15/3/16.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "ChatHomeController.h"
+
+@interface ChatHomeFirstCell : UITableViewCell<MessageRoutable>
+
+
+@property(nonatomic,weak) ChatHomeController * chatHomeController;
+
+- (void)setViewDefault;
+
+@end

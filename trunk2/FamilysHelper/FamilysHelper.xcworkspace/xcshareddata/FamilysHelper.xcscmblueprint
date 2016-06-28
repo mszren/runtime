@@ -1,0 +1,32 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "e420dd13-4bd9-0845-a3c0-87415674754d++505",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+    "e420dd13-4bd9-0845-a3c0-87415674754d++505" : {
+
+    }
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "56E9AE9CA156FE660667EAA3C8DE9160E3502409" : 0,
+    "e420dd13-4bd9-0845-a3c0-87415674754d++505" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "DF58FD9F-91C6-4E67-AC2D-5CDA49DFC7A1",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "56E9AE9CA156FE660667EAA3C8DE9160E3502409" : "",
+    "e420dd13-4bd9-0845-a3c0-87415674754d++505" : "trunk2"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "FamilysHelper",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "FamilysHelper\/FamilysHelper.xcworkspace",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "github.com:mszren\/learngit.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "56E9AE9CA156FE660667EAA3C8DE9160E3502409"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/172.21.1.50\/svn\/ios",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Subversion",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "e420dd13-4bd9-0845-a3c0-87415674754d++505"
+    }
+  ]
+}

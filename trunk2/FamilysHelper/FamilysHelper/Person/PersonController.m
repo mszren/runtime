@@ -1,0 +1,262 @@
+//
+//  PersonController.m
+//  FamilysHelper
+//
+//  Created by 曹亮 on 15/4/7.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "PersonController.h"
+#import "PersonCenterHeaderView.h"
+#import "PersonCenterCell.h"
+#import "CellModel.h"
+
+@interface PersonController () <UICollectionViewDelegate, UICollectionViewDataSource> {
+
+    UICollectionView* _collectionView;
+    NSMutableArray* _listImgs;
+}
+@property (nonatomic, strong) PersonCenterHeaderView* headerView;
+@end
+
+@implementation PersonController
+@synthesize messageListner;
+@synthesize currentUser = _currentUser;
+static NSString* identifier = @"PersonCellIdentifier";
+
+- (id)init
+{
+    self = [super init];
+    if (self) {
+    }
+    return self;
+}
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+
+    [self initializeNavTitleView:@"个人中心"];
+    UIBarButtonItem* rightItem = [[UIBarButtonItem alloc] initWithTitle:@"设置" style:UIBarButtonItemStylePlain target:self action:@selector(rightItemAction:)];
+    self.navigationItem.rightBarButtonItem = rightItem;
+    [self initializeMyView];
+    [self initData];
+}
+
+- (void)initData
+{
+    _listImgs = [NSMutableArray arrayWithCapacity:0];
+    CellModel* model = [[CellModel alloc] init];
+    model.iconName = @"ic_balance";
+    model.titleName = @"我的余额";
+    model.iconURL = [NSString stringWithFormat:@"%@/ibsApp/page/hongbao/mybalance.html?userId=%lu", JAVA_API, (unsigned long)[CurrentAccount currentAccount].uid];
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_bill";
+    model.titleName = @"我的账单";
+    model.iconURL = [NSString stringWithFormat:@"%@/ibsApp/page/grzx/zhangdan.html?userId=%lu", JAVA_API, (unsigned long)[CurrentAccount currentAccount].uid];
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_interaction";
+    model.titleName = @"我的互动";
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_activity";
+    model.titleName = @"我的活动";
+    model.iconURL = [NSString stringWithFormat:@"%@/ibsApp/page/activity/myindex.html?userId=%lu", JAVA_API, (unsigned long)[CurrentAccount currentAccount].uid];
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_attestation";
+    model.titleName = @"经纪人认证";
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_client";
+    model.titleName = @"我的客户";
+    model.iconURL = [NSString stringWithFormat:@"%@/ibsApp/page/tjz/tjzwdkh.html?userId=%lu", JAVA_API, (unsigned long)[CurrentAccount currentAccount].uid];
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_shoping";
+    model.titleName = @"我的购";
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_friends";
+    model.titleName = @"我的邀友";
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_peronal@3x.png";
+    model.titleName = @"我的红包";
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_collection@3x.png";
+    model.titleName = @"我的收藏";
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_events@3x.png";
+    model.titleName = @"我的帮活动";
+    [_listImgs addObject:model];
+
+    model = [[CellModel alloc] init];
+    model.iconName = @"ic_aboutus";
+    model.iconURL = [NSString stringWithFormat:@"%@/ibsApp/page/login/aboutMe.html?userId=%lu", JAVA_API, (unsigned long)[CurrentAccount currentAccount].uid];
+    model.titleName = @"关于我们";
+    [_listImgs addObject:model];
+}
+#pragma mark RouteMessage Delegate
+- (void)RouteMessage:(NSString*)message withContext:(id)context
+{
+    if ([message isEqualToString:NOTIFICATION_PERSON_USER]) {
+        NSDictionary* dic = context;
+        User *user=[dic objectForKey:NOTIFICATION_DATA];
+        CurrentAccount* currentAccount=[CurrentAccount currentAccount];
+        currentAccount.cityId=user.cityId;
+        currentAccount.address=user.address;
+        currentAccount.birthday=user.birthday;
+        currentAccount.communityId=user.communityId;
+        currentAccount.face=user.face;
+        currentAccount.nickname=user.nickname;
+        currentAccount.sex=user.sex;
+        currentAccount.signature=user.signature;
+        [CurrentAccount saveAccount:currentAccount];
+        NSLog(@"%@",[CurrentAccount currentAccount].nickname);
+        [_headerView setAvatarUrlString:[CurrentAccount currentAccount].face];
+        [_headerView setInfo:[NSDictionary dictionaryWithObjectsAndKeys:[CurrentAccount currentAccount].nickname, XHUserNameKey, [CurrentAccount currentAccount].signature, XHBirthdayKey, nil]];
+    }
+    else {
+        [self.messageListner RouteMessage:message withContext:context];
+    }
+}
+
+- (void)initializeMyView
+{
+    [self.view setBackgroundColor:BGViewGray];
+    _headerView = [[PersonCenterHeaderView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, 220)];
+    _headerView.messageListner = self;
+    [_headerView setViewDefault];
+    [_headerView setAvatarUrlString:[CurrentAccount currentAccount].face];
+    [_headerView setInfo:[NSDictionary dictionaryWithObjectsAndKeys:[CurrentAccount currentAccount].nickname, XHUserNameKey, [CurrentAccount currentAccount].signature, XHBirthdayKey, nil]];
+    [self.view insertSubview:_headerView atIndex:0];
+
+    UITapGestureRecognizer* versioncodeGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(headerViewAction:)];
+    [_headerView addGestureRecognizer:versioncodeGesture];
+
+    UICollectionViewFlowLayout* layout = [[UICollectionViewFlowLayout alloc] init];
+
+    [layout setScrollDirection:UICollectionViewScrollDirectionVertical];
+    layout.itemSize = CGSizeMake(SCREEN_WIDTH / 3, SCREEN_WIDTH / 3);
+    layout.minimumInteritemSpacing = 0;
+    layout.minimumLineSpacing = 0;
+    layout.sectionInset = UIEdgeInsetsMake(0, 0, 0, 0);
+
+    _collectionView = [[UICollectionView alloc] initWithFrame:CGRectMake(-0.5, 220, SCREEN_WIDTH + 1, SCREEN_HEIGHT - 220) collectionViewLayout:layout];
+    [_collectionView setBackgroundColor:[UIColor whiteColor]];
+
+    [_collectionView registerClass:[PersonCenterCell class] forCellWithReuseIdentifier:identifier];
+
+    _collectionView.delegate = self;
+    _collectionView.dataSource = self;
+    [self.view addSubview:_collectionView];
+}
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self setCleanNavBg];
+}
+- (void)viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+}
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+}
+- (void)viewDidUnload
+{
+    [super viewDidUnload];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+}
+
+#pragma mark
+#pragma mark-- nav item action
+- (void)rightItemAction:(id)sender
+{
+    [self RouteMessage:ACTION_SHOW_PERSON_SETTING withContext:@{ ACTION_Controller_Name : self }];
+}
+
+#pragma collection 数据源
+- (NSInteger)collectionView:(UICollectionView*)collectionView numberOfItemsInSection:(NSInteger)section
+{
+    return _listImgs.count;
+}
+
+- (UICollectionViewCell*)collectionView:(UICollectionView*)collectionView cellForItemAtIndexPath:(NSIndexPath*)indexPath
+{
+
+    PersonCenterCell* cell = [collectionView dequeueReusableCellWithReuseIdentifier:identifier forIndexPath:indexPath];
+    CellModel* model = [_listImgs objectAtIndex:indexPath.row];
+    [cell bindData:model];
+    return cell;
+}
+
+- (void)collectionView:(UICollectionView*)collectionView didSelectItemAtIndexPath:(NSIndexPath*)indexPath
+{
+    switch (indexPath.row) {
+    //我的互动
+    case 2:
+        [self RouteMessage:ACTION_SHOW_PERSON_MYHUDONG withContext:@{ ACTION_Controller_Name : self }];
+        break;
+    //经纪人认证
+    case 4:
+        [self RouteMessage:ACTION_SHOW_PERSON_ATTESTATION withContext:@{ ACTION_Controller_Name : self }];
+        break;
+    //我的购
+    case 6:
+        [self RouteMessage:ACTION_SHOW_PERSON_MYORDER withContext:@{ ACTION_Controller_Name : self }];
+        break;
+    //我的邀友
+    case 7:
+        [self RouteMessage:ACTION_SHOW_PERSON_MYINVITE withContext:@{ ACTION_Controller_Name : self }];
+        break;
+    //我的红包
+    case 8:
+        [self RouteMessage:ACTION_SHOW_PERSON_MYREDRACKET withContext:@{ ACTION_Controller_Name : self }];
+        break;
+
+    //我的收藏
+    case 9:
+        [self RouteMessage:ACTION_SHOW_PERSON_MYCOLLECTION withContext:@{ ACTION_Controller_Name : self }];
+        break;
+
+    //我的帮活动
+    case 10:
+        [self RouteMessage:ACTION_SHOW_MORE_ACTIVITY
+               withContext:@{ ACTION_Controller_Name : self,
+                   ACTION_Controller_Data : @"user" }];
+        break;
+
+    default: {
+        CellModel* model = [_listImgs objectAtIndex:indexPath.row];
+        [messageListner RouteMessage:ACTION_SHOW_WEB_INFO withContext:@{ ACTION_Controller_Name : self, ACTION_Web_URL : model.iconURL, ACTION_Web_Title : model.titleName }];
+        break;
+    }
+    }
+}
+- (void)headerViewAction:(id)sender
+{
+    [self RouteMessage:ACTION_SHOW_PERSON_USERINFO withContext:@{ ACTION_Controller_Name : self, ACTION_Controller_Data : [CurrentAccount currentAccount].telNumber }];
+    
+}
+
+@end

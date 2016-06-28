@@ -1,0 +1,661 @@
+//
+//  OrderSViewController.m
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/6/2.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "OrdeViewController.h"
+#import "ShopsService.h"
+#import "MsgListModel.h"
+#import "TribeModel.h"
+#import "UIImageView+AFNetworking.h"
+#import "PartnerConfig.h"
+
+#import "Order.h"
+#import "DataSigner.h"
+#import <AlipaySDK/AlipaySDK.h>
+#import "APAuthV2Info.h"
+@interface OrdeViewController () <UITextFieldDelegate, UIScrollViewDelegate, UITextViewDelegate>
+@property (nonatomic, strong) DataModel* dataModel;
+@property (nonatomic, assign) float bangprice;
+@property (nonatomic, assign) float switchPrice;
+@property (nonatomic, strong) UITextView* textView;
+@property (nonatomic, strong) UILabel* covertLabel; //覆盖框
+@property (nonatomic, strong) UILabel* promptLabel; //提示字数
+@property (nonatomic, strong) UILabel* realPrice; //实付钱数
+@property (nonatomic, strong) UIScrollView* scrollView;
+@property (nonatomic, assign) float contntOffset;
+@property (nonatomic, strong) UIView* relarbuyView;
+@property (nonatomic, strong) UIButton* switchButton;
+@property (nonatomic, strong) NSMutableString* leaveWords;
+@property (nonatomic, strong) UILabel* banbiLabel;
+@property (nonatomic, assign) float lastPrice;
+@property (nonatomic,strong)MBProgressHUD *hud;
+
+@end
+
+@implementation OrdeViewController{
+    ASIHTTPRequest *_checkRequest;
+    ASIHTTPRequest *_buyRequest;
+    MsgListModel *_msglistModel;
+    UILabel* _countLabel;
+    NSArray *_payType;
+    UILabel* _shopLabel;
+    UIView* _goodsView;
+    EGOImageView* _goodsImage;
+    UILabel* shopName;
+    UILabel* _goodsTitle;
+    UILabel* _goodsPrice;
+    UILabel* _originalPrice;
+    UILabel* _backLabel;
+    UILabel* _buyType;
+    UILabel* _messge;
+    UILabel* _grayLabel;
+    UILabel* _buyLaber;
+    UIButton* _cancelButton;
+    UIButton* _buyButton;
+    UIView* _bangbiView;
+    UIView* _buyView;
+    UIView *_zhifuView;
+    UIButton *_selectButton;
+    UIButton *_oldButton;
+    NSString *_selectPayType;
+    NSInteger _resultCode;
+}
+
+@synthesize messageListner;
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    self.view.backgroundColor = [UIColor whiteColor];
+    [self setWhiteNavBg];
+    [self inintView];
+    [self loadData];
+}
+
+-(id)initWithOrdelModel:(OrderModel *)model{
+    _orderNum = model.orderNum;
+    _goodsID = model.goodsId;
+    _bangBi = model.bangbi;
+    _goods = model.goods;
+    _shopName = model.shopname;
+    _goodsName = model.goodsname;
+    return self;
+    
+}
+
+-(void)loadData{
+    if (_buyRequest) {
+        [_buyRequest cancel];
+    }
+    _buyRequest = [[ShopsService shareInstance] getCouldUseBangBiCountV2:_goodsID
+                                                                  userId:[CurrentAccount currentAccount].uid
+                                                               onSuccess:^(DataModel* dataModel) {
+                                                                   if (dataModel.code == 200) {
+                                                                       
+                                                                       _msglistModel = dataModel.data;
+                                                                       _countLabel.text = [NSString stringWithFormat:@"¥%.2ld帮币", (long)_msglistModel.mybanlance];
+                                                                       _payType = [_msglistModel.payType componentsSeparatedByString:@","];
+                                                                       _selectPayType = _payType[0];
+                                                                       [self bindData];
+
+                                                                   }
+                                                                   
+                                                               }];
+}
+
+-(void)inintView{
+    _result = @selector(paymentResult:);
+    _leaveWords = [[NSMutableString alloc] initWithCapacity:50];
+    _bangprice = 0;
+    
+    UILabel* titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 80, 14, SCREEN_WIDTH - 160, 17)];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    titleLabel.text = @"确定订单信息";
+    titleLabel.font = [UIFont systemFontOfSize:20];
+    titleLabel.textColor = COLOR_RED_DEFAULT_78;
+    self.navigationItem.titleView = titleLabel;
+    
+    
+    //bangbiView
+    _bangbiView = [[UIView alloc] initWithFrame:CGRectMake(0, 130, SCREEN_WIDTH, 44)];
+    _bangbiView.backgroundColor = [UIColor whiteColor];
+    
+    
+    UILabel* balance = [[UILabel alloc] initWithFrame:CGRectMake(10, 15, 120, 18)];
+    balance.text = @"家家帮账户余额";
+    balance.font = [UIFont systemFontOfSize:15];
+    [_bangbiView addSubview:balance];
+    
+    //buyView
+    _buyView = [[UIView alloc] initWithFrame:CGRectMake(0, 175, SCREEN_WIDTH, 44)];
+    _buyView.backgroundColor = [UIColor whiteColor];
+    
+    _buyView.backgroundColor = [UIColor whiteColor];
+    UILabel* buyLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 13, 30, 18)];
+    [_buyView addSubview:buyLabel];
+    _buyView.userInteractionEnabled = YES;
+    buyLabel.font = [UIFont systemFontOfSize:15];
+    buyLabel.text = @"使用";
+    
+    _banbiLabel = [[UILabel alloc] initWithFrame:CGRectMake(40, 13, 80, 18)];
+    _banbiLabel.textAlignment = NSTextAlignmentCenter;
+    _bangprice = _bangBi;
+    _banbiLabel.font = [UIFont systemFontOfSize:15];
+    _banbiLabel.textColor = RedColor1;
+    [_buyView addSubview:_banbiLabel];
+    
+    UILabel* zhiFuLabel = [[UILabel alloc] initWithFrame:CGRectMake(120, 13, 30, 18)];
+    zhiFuLabel.text = @"代付";
+    zhiFuLabel.font = [UIFont systemFontOfSize:15];
+    [_buyView addSubview:zhiFuLabel];
+    
+    _switchButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    _switchButton.frame = CGRectMake(SCREEN_WIDTH - 50, 10, 40, 24);
+    [_switchButton addTarget:self action:@selector(onBtnSwitch:) forControlEvents:UIControlEventTouchUpInside];
+    [_switchButton setBackgroundImage:[UIImage imageNamed:@"table_btn_off"] forState:UIControlStateNormal];
+    [_switchButton setBackgroundImage:[UIImage imageNamed:@"table_btn_on"] forState:UIControlStateSelected];
+    [_buyView addSubview:_switchButton];
+    
+    _countLabel = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 90, 15, 70, 18)];
+    _countLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_b9;
+    [_bangbiView addSubview:_countLabel];
+    _countLabel.font = [UIFont systemFontOfSize:15];
+    
+    _scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 108)];
+    _scrollView.bounces = NO;
+    _scrollView.delegate = self;
+    _scrollView.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    _scrollView.showsHorizontalScrollIndicator = NO;
+    _scrollView.showsVerticalScrollIndicator = NO;
+    _scrollView.userInteractionEnabled = YES;
+   
+    
+    _shopLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 10, SCREEN_WIDTH - 10, 15)];
+    _shopLabel.font = [UIFont systemFontOfSize:13];
+    _shopLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    
+    //goodsView
+    _goodsView = [[UIView alloc] initWithFrame:CGRectMake(0, 30, SCREEN_WIDTH, 90)];
+    _goodsView.backgroundColor = [UIColor whiteColor];
+    
+    _goodsImage = [[EGOImageView alloc]initWithPlaceholderImage:[UIImage imageNamed:@"ic_default_90"]];
+    _goodsImage.frame = CGRectMake(10, 10, 90, 72);
+    [_goodsImage setImageURL:[AppImageUtil getImageURL:_goods.goodsimage Size:_goodsImage.frame.size]];
+    
+    shopName = [[UILabel alloc] initWithFrame:CGRectMake(110, 15, 200, 15)];
+    shopName.textColor = COLOR_RED_DEFAULT_04;
+    shopName.font = [UIFont systemFontOfSize:15];
+    shopName.text = _goodsName;
+    
+    _goodsTitle = [[UILabel alloc] initWithFrame:CGRectMake(110, 36, 200, 15)];
+    _goodsTitle.text = _goods.goodstitle;
+    _goodsTitle.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    _goodsTitle.font = [UIFont systemFontOfSize:13];
+    
+    _goodsPrice = [[UILabel alloc] initWithFrame:CGRectMake(110, 64, 60, 15)];
+    _goodsPrice.textColor = COLOR_RED_DEFAULT_34e;
+    NSString* price = [NSString stringWithFormat:@"%ld", (long)_goods.goodsPrice];
+    float pric = [price floatValue];
+    _goodsPrice.text = [NSString stringWithFormat:@"¥%.2f", pric];
+    _goodsPrice.font = [UIFont systemFontOfSize:15];
+    
+    _originalPrice = [[UILabel alloc] initWithFrame:CGRectMake(180, 63, 80, 16)];
+    _originalPrice.textColor = COLOR_GRAY_DEFAULT_OPAQUE_b9;
+    _originalPrice.font = [UIFont systemFontOfSize:13];
+    NSString* original = [NSString stringWithFormat:@"%ld", (long)_goods.originalPrice];
+    float orig = [original floatValue];
+    _originalPrice.text = [NSString stringWithFormat:@"¥%.2f", orig];
+    
+    _backLabel = [[UILabel alloc] initWithFrame:CGRectMake(180, 71, _originalPrice.text.length * 7, 1)];
+    _backLabel.backgroundColor = COLOR_RED_DEFAULT_8d;
+    
+    _buyType = [[UILabel alloc] initWithFrame:CGRectMake(10, 228, 180, 15)];
+    _buyType.text = @"选择支付方式";
+    _buyType.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    _buyType.font = [UIFont systemFontOfSize:13];
+    
+    _messge = [[UILabel alloc] initWithFrame:CGRectMake(10, 260 , 100, 15)];
+
+    _covertLabel = [[UILabel alloc] initWithFrame:CGRectMake(5, 8, SCREEN_WIDTH, 20)];
+    _covertLabel.textColor = COLOR_DARKGRAY_DEFAULT;
+    _covertLabel.font = [UIFont systemFontOfSize:13];
+    _covertLabel.text = @"请输入订单留言";
+    
+    //输入框
+    _textView = [[UITextView alloc] initWithFrame:CGRectMake(0, 285  , SCREEN_WIDTH, 200)];
+    _textView.font = [UIFont systemFontOfSize:15];
+    _textView.textAlignment = NSTextAlignmentLeft;
+    
+    //提示输入字数
+    _promptLabel = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 120, _textView.bounds.size.height - 35, 120, 15)];
+    _promptLabel.text = [NSString stringWithFormat:@"还可以输入%u个字", 60 - _textView.text.length];
+    _promptLabel.font = [UIFont systemFontOfSize:13];
+    _promptLabel.textColor = COLOR_DARKGRAY_DEFAULT_OPAQUE_50;
+    
+    //_relarbuyView
+    _relarbuyView = [[UIView alloc] initWithFrame:CGRectMake(0, SCREEN_HEIGHT - TopBarHeight - 64, SCREEN_WIDTH, 44)];
+    _relarbuyView.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    
+    _grayLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, 0.5)];
+    _grayLabel.backgroundColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    
+    _buyLaber = [[UILabel alloc] initWithFrame:CGRectMake(10, 15, 40, 15)];
+    _buyLaber.text = @"实付:";
+    _buyLaber.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    _buyLaber.font = [UIFont systemFontOfSize:13];
+    
+    _realPrice = [[UILabel alloc] initWithFrame:CGRectMake(48, 14, 80, 15)];
+    _realPrice.textColor = [UIColor orangeColor];
+    float lastPrice = _goods.goodsPrice - _switchPrice;
+    _realPrice.text = [NSString stringWithFormat:@"¥%.2f", lastPrice];
+    _realPrice.font = [UIFont systemFontOfSize:18];
+    
+    _cancelButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    _cancelButton.layer.cornerRadius = 4;
+    _cancelButton.clipsToBounds = YES;
+    _cancelButton.frame = CGRectMake(SCREEN_WIDTH - 140, 10, 60, 25);
+    [_cancelButton setTitle:@"取消" forState:UIControlStateNormal];
+    _cancelButton.titleLabel.font = [UIFont systemFontOfSize:13];
+    [_cancelButton setBackgroundColor:COLOR_GRAY_DEFAULT];
+    [_cancelButton addTarget:self action:@selector(onBtnCancelOrder:) forControlEvents:UIControlEventTouchUpInside];
+    
+    _buyButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    _buyButton.frame = CGRectMake(SCREEN_WIDTH - 70, 10, 60, 25);
+    _buyButton.layer.cornerRadius = 4;
+    _buyButton.clipsToBounds = YES;
+    [_buyButton setTitle:@"去支付" forState:UIControlStateNormal];
+    _buyButton.titleLabel.font = [UIFont systemFontOfSize:13];
+    [_buyButton setBackgroundColor:[UIColor orangeColor]];
+    [_buyButton addTarget:self action:@selector(onBtnBuy:) forControlEvents:UIControlEventTouchUpInside];
+    
+    _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+}
+
+- (void)bindData
+{
+     [self.view addSubview:_scrollView];
+     _scrollView.contentSize = CGSizeMake(0, 495 + 45*_payType.count);
+    
+    _banbiLabel.text = [NSString stringWithFormat:@"%.2f帮币", _msglistModel.count];
+    
+    _shopLabel.text = [NSString stringWithFormat:@"商品来自【%@】", _shopName];
+    [_scrollView addSubview:_shopLabel];
+
+    [_scrollView addSubview:_goodsView];
+    
+    [_goodsView addSubview:_goodsImage];
+    
+    [_goodsView addSubview:shopName];
+
+
+    [_goodsView addSubview:_goodsTitle];
+
+
+    [_goodsView addSubview:_goodsPrice];
+
+
+    [_goodsView addSubview:_originalPrice];
+
+
+    [_goodsView addSubview:_backLabel];
+
+
+    [_scrollView addSubview:_buyType];
+
+    
+    for (NSInteger i=0; i< _payType.count; i++) {
+        _zhifuView = [[UIView alloc]initWithFrame:CGRectMake(0, 250 + 45*i, SCREEN_WIDTH, 44)];
+        _zhifuView.userInteractionEnabled = YES;
+        _zhifuView.backgroundColor = [UIColor whiteColor];
+        _zhifuView.tag = 200 + i;
+        [_scrollView addSubview:_zhifuView];
+        
+        _selectButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        _selectButton.frame = CGRectMake(1, 0 , 44, 44);
+        [_selectButton setImage:[UIImage imageNamed:@"btn_yd_grzx_normal"] forState:UIControlStateNormal];
+        [_selectButton setImage:[UIImage imageNamed:@"btn_yd_grzx_selected"] forState:UIControlStateSelected];
+        
+        _selectButton.tag = 100 + i;
+        [_selectButton addTarget:self action:@selector(onBtnSelect:) forControlEvents:UIControlEventTouchUpInside];
+        [_zhifuView addSubview:_selectButton];
+      
+        switch ([_payType[i] integerValue]) {
+            case 1:{
+                UIImageView* image = [[UIImageView alloc] initWithFrame:CGRectMake(30, 15, 73, 16)];
+                image.image = [UIImage imageNamed:@"ic_zfb"];
+                [_zhifuView addSubview:image];
+            }
+                break;
+            case 2:{
+                UIImageView* image = [[UIImageView alloc] initWithFrame:CGRectMake(30, 15, 73, 16)];
+                image.image = [UIImage imageNamed:@"ic_wx"];
+                [_zhifuView addSubview:image];
+            }
+                break;
+                
+            default:{
+                UILabel *zhifubaoLabel = [[UILabel alloc]initWithFrame:CGRectMake(30, 0, 73, 44)];
+                zhifubaoLabel.text = @"现金支付";
+                zhifubaoLabel.font = [UIFont systemFontOfSize:13];
+                zhifubaoLabel.textAlignment = NSTextAlignmentCenter;
+                zhifubaoLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+                [_zhifuView addSubview:zhifubaoLabel];
+            }
+                break;
+        }
+        
+        UILabel *payTypeLabel = [[UILabel alloc]initWithFrame:CGRectMake(100, 15 , 100, 16)];
+        payTypeLabel.text = @"支付方式";
+        payTypeLabel.font = [UIFont systemFontOfSize:13];
+        payTypeLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+        [_zhifuView addSubview:payTypeLabel];
+        
+    }
+    _oldButton = (UIButton *)[self.view viewWithTag:100];
+    _oldButton.selected = YES;
+ 
+    _messge = [[UILabel alloc] initWithFrame:CGRectMake(10, 260 + _payType.count * 45, 100, 15)];
+    _messge.text = @"订单留言";
+    _messge.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    _messge.font = [UIFont systemFontOfSize:13];
+    [_scrollView addSubview:_messge];
+
+    _textView = [[UITextView alloc] initWithFrame:CGRectMake(0, 285 + _payType.count * 45, SCREEN_WIDTH, 200)];
+    [_scrollView addSubview:_textView];
+
+     _textView.delegate = self;
+    [_textView addSubview:_covertLabel];
+
+    [_textView addSubview:_promptLabel];
+
+    [self.view addSubview:_relarbuyView];
+
+    [_relarbuyView addSubview:_grayLabel];
+
+    [_relarbuyView addSubview:_buyLaber];
+
+    [_relarbuyView addSubview:_realPrice];
+
+    [_relarbuyView addSubview:_cancelButton];
+
+    [_relarbuyView addSubview:_buyButton];
+    
+    [_scrollView addSubview:_bangbiView];
+    
+    [_scrollView addSubview:_buyView];
+    
+    _hud.hidden = YES;
+   
+}
+
+#pragma mark
+#pragma mark -- ButtonAction
+- (void)onBtnSwitch:(UISwitch*)sender
+{
+
+    if (sender.selected) {
+        _switchPrice = 0;
+    }
+    else {
+        if (_bangBi > _msglistModel.mybanlance) {
+            _switchPrice = _msglistModel.mybanlance;
+        }else{
+            _switchPrice = _bangprice;
+        }
+    }
+    _lastPrice = _goods.goodsPrice - _switchPrice;
+    _realPrice.text = [NSString stringWithFormat:@"¥%.2f", _lastPrice];
+    sender.selected = !sender.selected;
+}
+
+-(void)onBtnSelect:(UIButton *)sender{
+    _selectPayType = _payType[sender.tag - 100];
+    _selectButton = (UIButton *)[self.view viewWithTag: sender.tag];
+    _selectButton.selected = !_selectButton.selected;
+    _oldButton.selected = !_oldButton.selected;
+    _oldButton = _selectButton;
+}
+
+
+#pragma mark
+#pragma mark-- NSNotificationCenter
+- (void)removeObserver
+{
+
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillHideNotification object:nil];
+}
+
+- (void)registerForKeyboardNotifications
+{
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHidden:) name:UIKeyboardWillHideNotification object:nil];
+}
+
+#pragma amrk
+#pragma mark-- UITextFieldDelegate
+- (void)textViewDidChange:(UITextView*)textView
+{
+    _textView.text = textView.text;
+    if (_textView.text.length == 0) {
+        _covertLabel.text = @"请输入订单留言";
+    }
+    else {
+        _covertLabel.text = @"";
+    }
+    [_leaveWords stringByAppendingString:_textView.text];
+}
+
+- (void)textViewDidBeginEditing:(UITextView*)textView
+{
+    _textView = textView;
+}
+
+- (void)textViewDidEndEditing:(UITextView*)textView
+{
+
+    _textView = nil;
+}
+
+- (BOOL)textView:(UITextView*)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString*)text
+{
+    if ([text isEqualToString:@"\n"]) {
+
+        _promptLabel.text = [NSString stringWithFormat:@"还可以输入%lu个字", 60 - _textView.text.length];
+        [_textView resignFirstResponder];
+        return NO;
+    }
+
+    return YES;
+}
+
+- (void)keyboardWillShow:(NSNotification*)notify
+{
+    _scrollView.contentOffset = CGPointMake(0, 260);
+}
+
+- (void)keyboardWillHidden:(NSNotification*)notify
+{
+
+    _scrollView.contentOffset = CGPointMake(0, 220);
+}
+
+
+- (void)onBtnBack:(UIButton*)sender
+{
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+- (void)onBtnCancel:(UIButton*)sender
+{
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+#pragma mark
+#pragma mark -- UIButtonAction
+- (void)onBtnBuy:(UIButton*)sender
+{
+ 
+    switch ([_selectPayType integerValue]) {
+            
+        case 1://支付宝支付
+            
+               [self zhifubaoAlipay];
+            break;
+        case 2://微信支付
+            
+            break;
+            
+        default://现金支付
+            
+            _resultCode = 9000;
+            [self returnView];
+            break;
+    }
+    
+
+}
+
+-(void)onBtnCancelOrder:(UIButton *)sender{
+    
+    [[ShopsService shareInstance] cancleOrderV2:_orderNum onSuccess:^(DataModel *dataModel) {
+        
+        if (dataModel.code == 201) {
+            
+            [self.navigationController popViewControllerAnimated:YES];
+            
+        }else{
+            [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+            [self.navigationController popViewControllerAnimated:YES];
+        }
+        
+    }];
+}
+
+- (void)returnView
+{
+
+    [[ShopsService shareInstance] writePayInfoIntoMySql:self.orderNum
+                                             resultCode:_resultCode
+                                               sellerId:SellerID
+                                                partner:PartnerID
+                                               totalfee:[NSString stringWithFormat:@"%.2f",_goods.goodsPrice - _switchPrice]
+                                              payflag:_selectPayType
+                                              onSuccess:^(DataModel* dataModel) {
+                                                  
+                                                  if (dataModel.code == 201) {
+                                                      
+                                                      //回调成功方能调用
+                                                      [ToastManager showToast:@"支付成功" withTime:Toast_Hide_TIME];
+                                                  }else{
+                                                      
+                                                      [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+                                                  }
+                                              }];
+}
+
+//-(void)payMoney{
+//    NSInteger isBb = 0;
+//    if (_switchButton.selected == YES) {
+//        isBb = 1;
+//    }
+//    
+//    [[ShopsService shareInstance] payGoodsOrderForm:[CurrentAccount currentAccount].uid
+//                                           orderNum:self.orderNum
+//                                               isBb:isBb
+//                                           payMoney:_goods.goodsPrice - _switchPrice
+//                                         leaveWords:_textView.text
+//                                         buyBbTotal:_msglistModel.count
+//                                          onSuccess:^(DataModel* dataModel) {
+//                                              if (dataModel.code == 202) {
+//                                                  
+//                                                  [ToastManager showToast:@"支付成功" withTime:Toast_Hide_TIME];
+//                                                  
+//                                              }else{
+//                                                  
+//                                                  [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+//                                              }
+//                                          }];
+//}
+
+//=======================================================支付===================================================//
+
+/**
+ *  支付宝支付
+ */
+-(void)zhifubaoAlipay{
+
+    /**
+     *  生产订单信息及签名
+     *
+     *  @return 将商品信息赋予AlixPayOrder的成员变量
+     */
+    Order *order = [[Order alloc]init];
+    order.partner = PartnerID;
+    order.seller = SellerID;
+    order.tradeNO = self.orderNum;
+    order.productName = self.goodsName;
+//    order.productDescription = _goods.goodstitle;
+    order.productDescription = self.goodsName;
+    order.amount = [NSString stringWithFormat:@"%.2f",_goods.goodsPrice - _switchPrice];
+//    order.amount = [NSString stringWithFormat:@"%.2f",0.01];
+    order.notifyURL = [NSString stringWithFormat:@"%@ibsApp/ibs/writePayInfoIntoMySql?orderNum=%@&resultCode=9000&sellerId=%@&partner=%@&totalfee=%@&payflag=%@",JAVA_API,self.orderNum,SellerID,PartnerID,[NSString stringWithFormat:@"%.2f",_goods.goodsPrice - _switchPrice],_selectPayType];
+    order.service = @"mobile.securitypay.pay";
+    order.paymentType = @"1";
+    order.inputCharset = @"utf-8";
+    order.itBPay = @"30m";
+    order.showUrl = @"m.alipay.com";
+    
+    //应用注册scheme,在AlixPayDemo-Info.plist定义URL types
+    NSString *appScheme = @"jiajiabangAlipay";
+    
+    //将商品信息拼接成字符串
+    NSString *orderSpec = [order description];
+    NSLog(@"orderSpec : %@",orderSpec);
+    //获取私钥并将商户信息签名,外部商户可以根据情况存放私钥和签名,只需要遵循RSA签名规范,并将签名字符串base64编码和UrlEncode
+    id<DataSigner> singner = CreateRSADataSigner(PartnerPrivKey);
+    NSString *signedString = [singner signString:orderSpec];
+    
+    //将签名成功字符串格式化为订单字符串,请严格按照该格式
+    NSString *orderString = nil;
+    if (signedString != nil) {
+        orderString =  [NSString stringWithFormat:@"%@&sign=\"%@\"&sign_type=\"%@\"",
+                        orderSpec, signedString, @"RSA"];
+        
+        [[AlipaySDK defaultService] payOrder:orderString fromScheme:appScheme callback:^(NSDictionary *resultDic) {
+            NSLog(@"reslut = %@",resultDic);
+            _resultCode = [resultDic[@"resultStatus"] integerValue];
+            if ([resultDic[@"resultStatus"] integerValue] == 9000) {
+                [self returnView];
+            }
+        }];
+    }
+}
+
+
+
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+    [self registerForKeyboardNotifications];
+}
+
+- (void)viewDidDisappear:(BOOL)animated
+{
+    [super viewDidDisappear:animated];
+    [self removeObserver];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+
+
+@end

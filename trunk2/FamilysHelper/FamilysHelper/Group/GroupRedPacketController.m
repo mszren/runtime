@@ -1,0 +1,299 @@
+//
+//  GroupRedPacketController.m
+//  FamilysHelper
+//
+//  Created by 曹亮 on 15/4/10.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "GroupRedPacketController.h"
+#import "RedPacketModel.h"
+#import "GroupRedPacketCell.h"
+#import "FileCache.h"
+#import "EGOTableView.h"
+#import "RedPacketWebController.h"
+
+#define EGOListCount  10
+
+@interface GroupRedPacketController()<EGOTableViewDelegate,UITableViewDataSource,UITableViewDelegate>{
+    NSUInteger page;
+    
+    UILabel * _leftNumLab;
+    UILabel * _rightNumLab;
+    UIView * _topBarView;
+    
+}
+@property (nonatomic, strong) EGOTableView * tableView;
+@property (nonatomic,assign) BOOL refreshing;
+@property (nonatomic,strong)MBProgressHUD *hud;
+@end
+
+@implementation GroupRedPacketController
+
+#pragma mark
+#pragma mark -- init
+- (id) init{
+    self = [super init];
+    if (self) {
+        _dataList = [[NSMutableArray alloc] initWithCapacity:0];
+    }
+    return self;
+}
+
+- (void)viewDidLoad{
+    [super viewDidLoad];
+    page = 1;
+    [self initializeWhiteBackgroudView:@"群红包"];
+    [self initTopBarView];
+    
+    UIBarButtonItem * rightItem = [[UIBarButtonItem alloc] initWithTitle:@"发红包" style:UIBarButtonItemStylePlain target:self action:@selector(rightItemAction:)];
+    self.navigationItem.rightBarButtonItem = rightItem;
+    
+    _tableView = [[EGOTableView alloc] initWithFrame:CGRectMake(0, TabBarHeight, SCREEN_WIDTH, SCREEN_HEIGHT - TopBarHeight-20-TabBarHeight)];
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+    _tableView.backgroundColor = [UIColor clearColor];
+    _tableView.backgroundView = nil;
+    _tableView.dataSource = self;
+    _tableView.delegate = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleSingleLine;
+    [self.view addSubview:self.tableView];
+    
+    [self loadCacheData];
+    [self.tableView launchRefreshing];
+}
+- (void) viewWillDisappear:(BOOL)animated{
+    [super viewWillDisappear:animated];
+    
+    [self saveCacheData];
+    [request clearDelegatesAndCancel];
+    request = nil;
+}
+- (void)didReceiveMemoryWarning{
+    [super didReceiveMemoryWarning];
+}
+
+#pragma mark
+#pragma mark -- initialize
+- (void)rightItemAction:(id) sender{
+    RedPacketWebController * controller = [[RedPacketWebController alloc] init];
+    controller.hidesBottomBarWhenPushed = YES;
+    controller.groupName = _currentGroupModel.name;
+    [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (void)initTopBarView{
+    _topBarView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, TabBarHeight)];
+    
+    UILabel * lab1 = [[UILabel alloc] initWithFrame:CGRectMake(TableLeftSpaceWidth, 10, 80, 30)];
+    lab1.backgroundColor = [UIColor clearColor];
+    lab1.text = @"共发放红包";
+    lab1.textColor = [UIColor lightGrayColor];
+    lab1.font = FONT_TITLE_MEDIUM;
+    [_topBarView addSubview:lab1];
+    
+    _leftNumLab = [[UILabel alloc] initWithFrame:CGRectMake(100, 12, 60, 25)];
+    _leftNumLab.backgroundColor = RedColor1;
+    _leftNumLab.text = @"14个";
+    _leftNumLab.textColor = [UIColor whiteColor];
+    _leftNumLab.font = FONT_TITLE_MEDIUM;
+    _leftNumLab.textAlignment = NSTextAlignmentCenter;
+    _leftNumLab.layer.cornerRadius = 10.0f;
+    _leftNumLab.layer.masksToBounds = YES;
+    [_topBarView addSubview:_leftNumLab];
+    
+    UILabel * lab3 = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH/2 + TableLeftSpaceWidth, 10, 80, 30)];
+    lab3.backgroundColor = [UIColor clearColor];
+    lab3.text = @"未领取红包";
+    lab3.textColor = [UIColor lightGrayColor];
+    lab3.font = FONT_TITLE_MEDIUM;
+    [_topBarView addSubview:lab3];
+    
+    _rightNumLab = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH/2+100, 12, 60, 25)];
+    _rightNumLab.backgroundColor = RedColor1;
+    _rightNumLab.text = @"0个";
+    _rightNumLab.textColor = [UIColor whiteColor];
+    _rightNumLab.font = FONT_TITLE_MEDIUM;
+    _rightNumLab.textAlignment = NSTextAlignmentCenter;
+    _rightNumLab.layer.cornerRadius = 10.0f;
+    _rightNumLab.layer.masksToBounds = YES;
+    [_topBarView addSubview:_rightNumLab];
+    
+    UIImageView * line = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"unityline.png"]];
+    line.frame = CGRectMake(0, TabBarHeight-1, SCREEN_WIDTH, 1);
+    [_topBarView addSubview:line];
+    
+    [self.view addSubview:_topBarView];
+}
+#pragma mark
+#pragma mark -- Table view data source
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return _dataList.count;
+}
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    static NSString * groupsCellIdentifier = @"GroupsCellIdentifier";
+    GroupRedPacketCell *cell = [tableView dequeueReusableCellWithIdentifier:
+                        groupsCellIdentifier];
+    if (cell == nil) {
+        cell = [[GroupRedPacketCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:groupsCellIdentifier];
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        [cell setViewDefault];
+    }
+    if (_dataList.count > indexPath.row) {
+        RedPacketModel * model = [_dataList objectAtIndex:indexPath.row];
+        [cell setViewData:model];
+    }
+    return cell;
+}
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return TableChatHomeCellHeight;
+}
+#pragma mark - Table view delegate
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    RedPacketModel * model;
+    if (_dataList.count > indexPath.row) {
+        model = [_dataList objectAtIndex:indexPath.row];
+        RedPacketWebController * controller = [[RedPacketWebController alloc] init];
+        controller.hidesBottomBarWhenPushed = YES;
+        controller.currentRedPacketModel = model;
+        [self.navigationController pushViewController:controller animated:YES];
+    }
+}
+#pragma mark -
+#pragma mark UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView{
+    [self.tableView tableViewDidScroll:scrollView];
+}
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate{
+    [self.tableView tableViewDidEndDragging:scrollView];
+}
+#pragma mark -
+#pragma mark EGOTableViewDelegate
+- (void)loadData{
+    if ([NetManage isNetworkReachable]) {
+        if (self.refreshing) {
+            page = 1;
+        }else{
+            page ++;
+        }
+        [self requestListMethod];
+    }else{
+        [ToastManager showToast:Toast_NetWork_Bad withTime:Toast_Hide_TIME];
+        [self.tableView tableViewDidFinishedLoading];
+        self.tableView.reachedTheEnd = NO;
+    }
+}
+- (void)pullingTableViewDidStartRefreshing:(EGOTableView *)tableView{
+    self.refreshing = YES;
+    _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    [self performSelector:@selector(loadData) withObject:nil afterDelay:0.1f];
+}
+- (void)pullingTableViewDidStartLoading:(EGOTableView *)tableView{
+    self.refreshing = NO;
+    _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    [self performSelector:@selector(loadData) withObject:nil afterDelay:0.1f];
+}
+- (NSDate *)pullingTableViewRefreshingFinishedDate{
+    return [NSDate date];
+}
+- (NSDate *)pullingTableViewLoadingFinishedDate{
+    return [NSDate date];
+}
+
+#pragma mark -
+#pragma mark private Method
+- (void)requestListMethod{
+    if ([NetManage isNetworkReachable]) {
+        NSMutableString * str = [[NSMutableString alloc] initWithString:GroupRedPacketListUrl((unsigned long)page,_currentGroupModel.name)];
+        request = [ASIHTTPRequest requestWithURL:[NSURL URLWithString:str]];
+        request.delegate = self;
+        request.timeOutSeconds = HTTP_TIMEOUT;
+        [request setDidFinishSelector:@selector(GetListResult:)];
+        [request setDidFailSelector:@selector(GetListErr:)];
+        [request startAsynchronous];
+    }else{
+        [ToastManager showToast:Toast_NetWork_Bad withTime:Toast_Hide_TIME];
+    }
+    _hud.hidden = YES;
+}
+#pragma mark -
+#pragma mark ASIHTTPRequestDelegate
+- (void)GetListResult:(ASIHTTPRequest *)lrequest{
+    NSData *data =[lrequest responseData];
+    NSError *error = nil;
+    
+    NSDictionary *totlaDic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableLeaves error:&error];
+    
+    NSArray * arr = [totlaDic objectForKey:@"o"];
+    NSMutableArray * array = [[NSMutableArray alloc] initWithCapacity:0];
+    if (arr) {
+        if ([arr isKindOfClass:[NSDictionary class]]) {
+           [self.tableView tableViewDidFinishedLoading];
+            self.tableView.reachedTheEnd = YES;
+            [self saveCacheData];
+            [self.tableView reloadData];
+            return;
+        }else{
+            RedPacketModel * model;
+            for (NSDictionary * dic in arr) {
+                model = [RedPacketModel JsonParse:dic];
+                [array addObject:model];
+            }
+        }
+
+    }
+    if (self.refreshing) {
+        [_dataList removeAllObjects];
+        _dataList = array;
+        if (array.count < EGOListCount || array.count ==0) {
+            self.tableView.reachedTheEnd = YES;
+        }else{
+            self.tableView.reachedTheEnd = NO;
+        }
+        [self.tableView tableViewDidFinishedLoading];
+    }else{
+        if (array.count > 0) {
+            [_dataList addObjectsFromArray:array];
+            [self.tableView tableViewDidFinishedLoading];
+        }
+        if (array.count < EGOListCount || array.count ==0) {
+            self.tableView.reachedTheEnd = YES;
+        }
+    }
+    [self saveCacheData];
+    [self.tableView reloadData];
+}
+- (void)GetListErr:(ASIHTTPRequest *)request{
+    [self.tableView tableViewDidFinishedLoading];
+    self.tableView.reachedTheEnd = NO;
+    [self loadCacheData];
+    [ToastManager showToast:Toast_NetWork_Bad withTime:Toast_Hide_TIME];
+}
+
+
+#pragma mark -
+#pragma mark DataManager
+- (NSString *)FileStrName{
+    NSString * str = [NSString stringWithFormat:@"GroupRedPacketListUrl_%@",GroupRedPacketListUrl((unsigned long)page,_currentGroupModel.name)];
+    return str;
+}
+- (void)saveCacheData{
+    NSArray *cacheDataArray = _dataList;
+    NSInteger total_num = 0;
+    for (RedPacketModel *model in _dataList) {
+        total_num += [model.total_num integerValue];
+    }
+    _leftNumLab.text = [NSString stringWithFormat:@"%d个",total_num];
+    
+    [FileCache storageObject:cacheDataArray url:[self FileStrName]];
+}
+- (void)loadCacheData{
+    NSArray *dataList = [FileCache loadObjectWithUrl:[self FileStrName]];
+    [_dataList removeAllObjects];
+    [_dataList addObjectsFromArray:dataList];
+}
+
+@end

@@ -1,0 +1,225 @@
+//
+//  APISDK+Index.m
+//  Common
+//
+//  Created by Owen on 15/5/25.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "IndexAPI.h"
+
+@implementation IndexAPI
+
+/**
+ *  推荐商家列表（帮-商品列表)
+ *
+ *  @param tribeId  帮名称（搜索用，可空）
+ *  @param shopname userId ：用户Id
+ *  @param callback <#callback description#>
+ */
++ (ASIHTTPRequest*)getRecommendTribeGoodsList:(NSString*)mapX mapY:(NSString*)mapY nextCursor:(NSInteger)nextCursor callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"mapX" : mapX,
+        @"mapY" : mapY,
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor]
+    };
+    return [self post:@"getRecommendTribeGoodsList"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  APP首页
+ *
+ *  @param userId   用户ID
+ *  @param callback 回调函数
+ */
++ (ASIHTTPRequest*)getFrontPageInfoV2:(NSInteger)userId callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId]
+    };
+    return [self post:@"getFrontPageInfoV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  热门帮 换一组
+ *
+ *  @param userId   用户ID
+ *  @param callback 回调函数
+ */
++ (ASIHTTPRequest*)changeOtherTribeFrontPageV2:(NSInteger)userId callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId]
+    };
+    return [self post:@"changeOtherTribeFrontPageV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  APP首页（更多）
+ *
+ *  @param type       类型（1：互动   2：活动）
+ *  @param nextCursor 游标
+ *  @param callback   回调函数
+ */
++ (ASIHTTPRequest*)getMorePublishContentFrontPageV2:(NSInteger)type tags:(NSString *)tags nextCursor:(NSInteger)nextCursor callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"type" : [NSString stringWithFormat:@"%ld", (long)type],
+        @"tags" : tags,
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor]
+    };
+    return [self post:@"getMorePublishContentFrontPageV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  更多热门商品
+ *
+ *  @param nextCursor 分页用
+ *  @param callback   回调函数
+ */
++ (ASIHTTPRequest*)getMoreGoodsFrontPageV2:(NSInteger)nextCursor callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor]
+    };
+    return [self post:@"getMoreGoodsFrontPageV2"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+/**
+ *  热门活动更多(更多)
+ *
+ *  @param nextCursor 分页用
+ *  @param title 搜索条件
+ *  @param callback   回调函数
+ */
++ (ASIHTTPRequest*)getMoreBangActivityList:(NSInteger)nextCursor title:(NSString*)title userId:(NSString*)userId callback:(NetConnBlock)callback
+{
+    
+    NSDictionary* params = @{
+                             @"nextCursor" : [NSString stringWithFormat:@"%ld", (long)nextCursor],
+                             @"title" : [NSString stringWithFormat:@"%@", title],
+                             @"userId": [NSString stringWithFormat:@"%@", userId]
+                             };
+    return [self post:@"getMoreBangActivityList"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  热门活动
+ *
+ *  @param nextCursor 分页用
+ *  @param callback   回调函数
+ */
++ (ASIHTTPRequest*)getHomePageActivity:(NetConnBlock)callback
+{
+    return [self post:@"getHomePageActivity"
+               params:nil
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+
+/**
+ *  首页活动赚
+ *
+ *  @param userId   用户ID
+ *  @param callback 回调函数
+ */
++ (ASIHTTPRequest*)getActivityListV6:(NSInteger)userId mid:(NSInteger)mid
+                            callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"mid" : [NSString stringWithFormat:@"%ld", (long)mid]
+    };
+    return [self post:@"getActivityListV6"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  首页推荐赚
+ *
+ *  @param userId   用户id
+ *  @param callback 回调函数
+ */
++ (ASIHTTPRequest*)getRecommendListV6:(NSInteger)userId mid:(NSInteger)mid
+                             callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"userId" : [NSString stringWithFormat:@"%ld", (long)userId],
+        @"mid" : [NSString stringWithFormat:@"%ld", (long)mid]
+    };
+    return [self post:@"getRecommendListV6"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  首页分享赚
+ *
+ *  @param user_id  用户id
+ *  @param mid      分页用的
+ *  @param callback 回调
+ */
++ (ASIHTTPRequest*)getShareListV6:(NSInteger)user_id mid:(NSInteger)mid
+                         callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"user_id" : [NSString stringWithFormat:@"%ld", user_id],
+        @"mid" : [NSString stringWithFormat:@"%ld", mid]
+    };
+    return [self post:@"getShareListV6"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+/**
+ *  短信邀友规则
+ *
+ *  @param user_id  用户名
+ *  @param callback <#callback description#>
+ */
++ (ASIHTTPRequest*)newCountMoney:(NSInteger)user_id callback:(NetConnBlock)callback
+{
+    NSDictionary* params = @{
+        @"user_id" : [NSString stringWithFormat:@"%ld", user_id]
+    };
+    return [self post:@"newCountMoney"
+               params:params
+             callback:^(DataModel* model) {
+                 callback(model);
+             }];
+}
+
+@end

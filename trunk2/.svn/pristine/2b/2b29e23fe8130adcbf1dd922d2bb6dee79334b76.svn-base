@@ -1,0 +1,177 @@
+//
+//  ActionConfig.h
+//  Common
+//
+//  Created by Owen on 15/7/7.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#ifndef Common_ActionConfig_h
+#define Common_ActionConfig_h
+
+#define ACTION_SHOW_LOGIN @"login"
+
+//帮帮
+#define ACTION_SHOW_BANGBANG @"bangbang"
+
+//个人中心
+#define ACTION_SHOW_PERSON_CENTER @"person_center"
+
+//某个帮的主页
+#define ACTION_SHOW_BANGBANG_BANGINDEX @"bangbang_bangindex"
+
+//某个帮的发布
+#define ACTION_SHOW_BANGBANG_BANGPUBLISH @"bangbang_bangpublish"
+
+//某个帮的发布选择标签
+#define ACTION_SHOW_BANGBANG_BANGPUBLISH_TAG @"bangbang_bangpublish_tag"
+
+//某个帮的主页
+#define ACTION_SHOW_BANGBANG_BANGLIST @"bangbang_banglist"
+
+//帮帮话题详情
+#define ACTION_SHOW_BANGBANG_TOPICDETAIL @"bangbang_topicdetail"
+
+//帮帮活动详情
+#define ACTION_SHOW_BANGBANG_ACTIVITYDETAIL @"bangbang_activitydetail"
+
+//帮帮活动成员详情
+#define ACTION_SHOW_BANGBANG_ACTIVITYDETAIL_MEMBER @"bangbang_activitydetail_member"
+
+//帮帮活动评论
+#define ACTION_SHOW_BANGBANG_ACTIVITYDETAIL_COMMIT @"bangbang_activitydetail_commit"
+
+//帮帮发布评论
+#define ACTION_SHOW_BANGBANG_ACTIVITYREPLY   @"bangbang_activityReply"
+
+//显示设置关注话题
+#define ACTION_SHOW_BANGBANG_FOLLOWTOPIC @"bangbang_followtopic"
+
+//显示签到页面
+#define ACTION_SHOW_BANGBANG_QIANDAO @"bangbang_qiandao"
+
+//帮帮商品详情
+#define ACTION_SHOW_BANGBANG_GOODSDETAIL @"bangbang_goodsdetail"
+
+//帮帮成员列表
+#define ACTION_SHOW_BANGBANG_MEMBERLIST @"bangbang_memberlist"
+
+//帮帮 帮详情
+#define ACTION_SHOW_BANGBANG_BANGDETAIL @"bangbang_memberdetail"
+
+//发布留言
+#define ACTION_SHOW_HOME_PUBLISH @"home_publish"
+
+//留言详情
+#define ACTION_SHOW_HOME_MSGDETAIL @"home_MsgDetail"
+
+//大家聊
+#define ACTION_SHOW_HOME_ALLCHAT @"home_AllChat"
+
+//用户资料
+#define ACTION_SHOW_PERSON_USERINFO @"person_userinfo"
+
+//设置
+#define ACTION_SHOW_PERSON_SETTING @"person_setting"
+
+
+#define  ACTION_SHOW_PERSON_EDITCENTER @"ACTION_SHOW_Person_EditCenter"
+
+//我的邀友
+#define ACTION_SHOW_PERSON_MYINVITE @"person_myInvite"
+
+//我的红包
+#define ACTION_SHOW_PERSON_MYREDRACKET @"person_myRedPacket"
+
+//我的收藏
+#define ACTION_SHOW_PERSON_MYCOLLECTION @"person_myCollection"
+
+//我的互动
+#define ACTION_SHOW_PERSON_MYHUDONG @"person_myhudong"
+
+//申请成为经济人
+#define ACTION_SHOW_PERSON_ATTESTATION @"person_attestation"
+
+//我的订单
+#define ACTION_SHOW_PERSON_MYORDER @"person_myorder"
+
+//通讯录
+#define ACTION_SHOW_SYSTEM_ADRESSBOOK @"system_AddressBook"
+
+//显示邀友赚页面
+#define ACTION_SHOW_SYSTEM_INVITE @"system_invite"
+
+//显示活动赚页面
+#define ACTION_SHOW_SYSTEM_ACTIVITY @"system_activity"
+
+//显示活动赚签到记录页面
+#define ACTION_SHOW_SYSTEM_ACTIVITYQIANDAO @"system_activityQianDao"
+
+//显示推荐赚页面
+#define ACTION_SHOW_SYSTEM_RECOMMEND @"system_recommend"
+
+//显示分享赚页面
+#define ACTION_SHOW_SYSTEM_SHARE @"system_share"
+
+//显示扫描二维码页面
+#define ACTION_SHOW_SYSTEM_SCAN @"system_scan"
+
+#define ACTION_SHOW_SYSTEM_SELECTTAGS @"system_SelectTags"
+
+//显示图片详情
+#define ACTION_SHOW_SYSTEM_PhotoView @"system_photoview"
+
+//显示更多热门互动
+#define ACTION_SHOW_MORE_INTERACTION @"more_interaction"
+
+//显示更多热门活动
+#define ACTION_SHOW_MORE_ACTIVITY @"more_activity"
+
+//显示订单页面
+#define ACTION_SHOW_SHOP_ORDER @"shop_order"
+
+//显示网页页面
+#define ACTION_SHOW_WEB_INFO @"web_info"
+
+//系统内通知 打赏
+#define NOTIFICATION_REWARD @"Notification_Reward"
+
+//系统内通知 帮发布
+#define NOTIFICATION_BANG_PUBLISH @"Notification_Bang_Publish"
+
+//系统内通知 评论
+#define NOTIFICATION_ANSWER @"Notification_Answer"
+
+//我家-发布
+#define NOTIFICATION_HOME_PUBLISH @"Notification_Home_Publish"
+
+//系统内通知 帮帮活动发布评论
+#define NOTIFICATION_BANGBANG_ACTIVITYREPLY @"Notification_BangBang_ActivityReply"
+
+//系统内通知 帮帮活动评论页面添加评论
+#define NOTIFICATION_BANGBANG_ACTIVITYCOMMENT  @"Notification_BangBang_ActivityComment"
+
+
+
+#define  NOTIFICATION_PERSON_USER @"Notification_Person_User"
+
+#define  NOTIFICATION_PERSON_NOTICE @"Notification_Person_Notice"
+
+//系统内通知
+#define NOTIFICATION_DATA @"Notification_DATA"
+
+#define ACTION_Controller_Name @"ACTION_Controller_Name"
+#define ACTION_Controller_Data @"ACTION_Controller_Data"
+#define ACTION_Controller_IsToRoot @"ACTION_Controller_IsToRoot"
+
+#define ACTION_Web_URL @"ACTION_Web_URL"
+#define ACTION_Web_flag @"ACTION_Web_FLAG"
+#define ACTION_Web_Title @"ACTION_Web_Title"
+
+#define BANGBANG_INDEX_TRIBEID               @"Bangbang_Index_TribeId"
+#define BANGBANG_INDEX_SELECTINDEX           @"Bangbang_Index_SelectIndex"
+#define SELECTTOPIC            0
+#define SELECTSHOP             1
+#define SELECTACTIVITY         2
+
+#endif

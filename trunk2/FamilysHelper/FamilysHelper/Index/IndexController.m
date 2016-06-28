@@ -1,0 +1,479 @@
+//
+//  IndexController.m
+//  FamilysHelper
+//
+//  Created by Owen on 15/5/27.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "IndexController.h"
+#import "XMPPManager.h"
+#import "ModuleModel.h"
+#import "GoodsModel.h"
+#import "IndexService.h"
+#import "CarouselCell.h"
+#import "ProfitCell.h"
+#import "InteractCell.h"
+#import "HotTribeCell.h"
+#import "HotGoodCell.h"
+#import "EGOTableView.h"
+#import "ScanViewController.h"
+#import "IndexModel.h"
+#import "TribeModel.h"
+#import "TopicModel.h"
+#import "IndexModel.h"
+#import "HotActivityCell.h"
+@interface IndexController () <UIScrollViewDelegate, UITableViewDataSource,
+    UITableViewDelegate, EGOTableViewDelegate>
+
+@end
+
+@implementation IndexController {
+    DataModel* _dataModel;
+    DataModel* _goodDataModel;
+    DataModel* _activityModel;
+    EGOTableView* _tableView;
+    CarouselCell* _carouselCell;
+    ProfitCell* _ProfitCell;
+    InteractCell* _interactCell;
+    HotTribeCell* _hotTribeCell;
+    hotGoodCell* _hotGoodCell;
+    ASIHTTPRequest* _moudlerequest;
+    ASIHTTPRequest* _goodsrequest;
+    ASIHTTPRequest* _activityRequest;
+    NSMutableArray* _carouselArry;
+    NSMutableArray* _dataArry;
+    HotActivityCell* _hotActivityCell;
+    BOOL iFinishModle;
+    BOOL iFinishGoods;
+    BOOL iFinishActivity;
+    BOOL _iRefresh;
+}
+@synthesize messageListner;
+
+- (id)init
+{
+    self = [super init];
+    if (self) {
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    _iRefresh = NO;
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    [self.navigationController.navigationBar
+        setBarTintColor:HomeNavBarTitleColor];
+    [self.navigationController.navigationBar setTranslucent:NO];
+    [self.navigationController.navigationBar setTintColor:HomeNavBarBgColor];
+    [self initializeNavTitleView:@"首页"];
+    [self setLeftPersonAction];
+
+    //创建右边的扫描按钮
+    UIBarButtonItem* rightButton = [[UIBarButtonItem alloc]
+        initWithImage:[UIImage imageNamed:@"actionbar_btn_scan"]
+                style:UIBarButtonItemStylePlain
+               target:self
+               action:@selector(onRightBtn:)];
+
+    self.navigationItem.rightBarButtonItem = rightButton;
+
+    _tableView = [[EGOTableView alloc]
+        initWithFrame:CGRectMake(0, -TopBarHeight + 9, SCREEN_WIDTH,
+                          SCREEN_HEIGHT - TabBarHeight - TopBarHeight + 16)
+                style:UITableViewStyleGrouped];
+    _tableView.delegate = self;
+    _tableView.dataSource = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableView.pullingDelegate = self;
+    _tableView.reachedTheEnd = YES;
+    _tableView.autoScrollToNextPage = NO;
+    _tableView.showsHorizontalScrollIndicator = NO;
+    _tableView.showsVerticalScrollIndicator = NO;
+    [self.view addSubview:_tableView];
+
+    [self loadData:NO];
+    NSString *dbPath = [NSHomeDirectory() stringByAppendingString:@"/Documents"];
+    NSLog(@"dbPath: %@", dbPath);
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
+    [super viewWillAppear:animated];
+//    [[AppDelegate shareDelegate] showTabbar:YES];
+    [self setRedNavBg];
+}
+
+- (void)pullingTableViewDidStartRefreshing:(EGOTableHeaderView*)tableView
+{
+
+    if (_goodDataModel) {
+        _goodDataModel.nextCursor = 0;
+        _goodDataModel.previousCursor = 0;
+    }
+    _iRefresh = YES;
+    [self loadData:YES];
+}
+
+- (void)pullingTableViewDidStartLoading:(EGOTableView*)tableView
+{
+    _iRefresh = NO;
+    [self loadData:YES];
+}
+
+- (NSDate*)pullingTableViewRefreshingFinishedDate
+{
+    return [NSDate date];
+}
+
+- (NSDate*)pullingTableViewLoadingFinishedDate
+{
+    return [NSDate date];
+
+}
+
+- (void)loadModle:(BOOL)iRefresh
+{
+    if (!iRefresh)
+        _dataModel = [AppCache loadCache:CACHE_INDEX_MOUDLE];
+    if (_dataModel && !iRefresh) {
+        iFinishModle = YES;
+        [self finishLoad];
+        return;
+    }
+
+    if (_moudlerequest) {
+        [_moudlerequest cancel];
+    }
+    _moudlerequest = [[IndexService shareInstance]
+        getFrontPageInfoV2:[CurrentAccount currentAccount].uid
+                 onSuccess:^(DataModel* dataModel) {
+                     if (dataModel.code == 200) {
+                         _dataModel = dataModel;
+                         [AppCache saveCache:CACHE_INDEX_MOUDLE Data:_dataModel];
+                     }
+                     iFinishModle = YES;
+                     [self finishLoad];
+                 }];
+}
+
+- (void)finishLoad
+{
+    if (iFinishModle && iFinishGoods && iFinishActivity) {
+        [_tableView reloadData];
+        [_tableView tableViewDidFinishedLoading];
+    }
+}
+
+- (void)loadData:(BOOL)iRefresh
+{
+    [self loadModle:iRefresh];
+    [self loadGoods:iRefresh];
+    [self loadActivity:iRefresh];
+}
+-(void)loadActivity:(BOOL)iRefresh{
+    if (!iRefresh) {
+        _activityModel = [AppCache loadCache:CACHE_INDEX_ACTIVITY];
+        if (_activityModel) {
+            iFinishActivity = YES;
+            [self finishLoad];
+            return;
+        }
+    }
+    if(_activityRequest){
+        [_activityRequest cancel];
+
+    }
+    _activityRequest=[[IndexService shareInstance]getHomePageActivity:^(DataModel *dataModel) {
+        if(dataModel.code==200){
+            _activityModel=dataModel;
+            [AppCache saveCache:CACHE_INDEX_ACTIVITY Data:_activityModel];
+        }
+        iFinishActivity = YES;
+        [self finishLoad];
+    }];
+}
+- (void)loadGoods:(BOOL)iRefresh
+{
+    if (!iRefresh) {
+        _goodDataModel = [AppCache loadCache:CACHE_INDEX_HOTGOODS];
+        if (_goodDataModel) {
+            iFinishGoods = YES;
+            [self finishLoad];
+            return;
+        }
+    }
+
+    if (_goodsrequest) {
+        [_goodsrequest cancel];
+    }
+    _goodsrequest = [[IndexService shareInstance]
+        getMoreGoodsFrontPageV2:_goodDataModel.nextCursor
+                      onSuccess:^(DataModel* dataModel) {
+                          if (dataModel.code == 200) {
+                              if (_goodDataModel) {
+                                  if (_iRefresh) {
+                                      [_goodDataModel.data removeAllObjects];
+                                  }
+                                  [_goodDataModel.data
+                                      addObjectsFromArray:dataModel.data];
+                                  _goodDataModel.code = dataModel.code;
+                                  _goodDataModel.nextCursor = dataModel.nextCursor;
+                                  _goodDataModel.previousCursor = dataModel.previousCursor;
+                                  _goodDataModel.error = dataModel.error;
+                              }
+                              else
+                                  _goodDataModel = dataModel;
+                              [AppCache saveCache:CACHE_INDEX_HOTGOODS Data:_goodDataModel];
+                          }
+                          iFinishGoods = YES;
+                          [self finishLoad];
+                      }];
+}
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView
+{
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView*)tableView
+ numberOfRowsInSection:(NSInteger)section
+{
+    NSArray* _goodDataArry = _goodDataModel.data;
+    if (_goodDataArry) {
+        return 6 + _goodDataArry.count / 2;
+    }
+    else
+        return 6;
+}
+
+- (UITableViewCell*)tableView:(UITableView*)tableView
+        cellForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+
+    if (indexPath.row == 0) {
+
+        static NSString* carouselCellid = @"carouselCell";
+        _carouselCell =
+            [tableView dequeueReusableCellWithIdentifier:carouselCellid];
+
+        if (!_carouselCell) {
+            _carouselCell =
+                [[CarouselCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                    reuseIdentifier:carouselCellid];
+            _carouselCell.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+            _carouselCell.selectionStyle = UITableViewCellSelectionStyleNone;
+            _carouselCell.messageListner = self;
+        }
+        if (_dataModel) {
+            [_carouselCell bindMoudle:_dataModel];
+        }
+        return _carouselCell;
+    }
+    else if (indexPath.row == 1) {
+
+        static NSString* profitCellid = @"profitCell";
+        _ProfitCell = [tableView dequeueReusableCellWithIdentifier:profitCellid];
+        if (!_ProfitCell) {
+            _ProfitCell =
+                [[ProfitCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                  reuseIdentifier:profitCellid];
+            _ProfitCell.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+            _ProfitCell.selectionStyle = UITableViewCellSelectionStyleNone;
+            _ProfitCell.messageListner = self;
+        }
+
+        return _ProfitCell;
+    }else if (indexPath.row==2){
+        static NSString* hotActivityCell = @"hotActivityCell";
+        _hotActivityCell=[tableView dequeueReusableCellWithIdentifier:hotActivityCell];
+        if (!_hotActivityCell) {
+            _hotActivityCell =
+            [[HotActivityCell alloc] initWithStyle:UITableViewCellStyleDefault
+                               reuseIdentifier:hotActivityCell];
+           // _hotActivityCell.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+            _hotActivityCell.selectionStyle = UITableViewCellSelectionStyleNone;
+            _hotActivityCell.messageListner = self;
+        }
+
+        [_hotActivityCell bindActivity:_activityModel];
+        return _hotActivityCell;
+    }
+    else if (indexPath.row == 3) {
+
+        static NSString* interactionCellid = @"interactionCell";
+        _interactCell =
+            [tableView dequeueReusableCellWithIdentifier:interactionCellid];
+        if (!_interactCell) {
+            _interactCell =
+                [[InteractCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                    reuseIdentifier:interactionCellid];
+            _interactCell.selectionStyle = UITableViewCellSelectionStyleNone;
+            _interactCell.messageListner = self;
+            UITapGestureRecognizer* tapImage = [[UITapGestureRecognizer alloc]
+                initWithTarget:self
+                        action:@selector(onTapImageInter:)];
+            UITapGestureRecognizer* tapImage2 = [[UITapGestureRecognizer alloc]
+                initWithTarget:self
+                        action:@selector(onTapImageInter:)];
+            UITapGestureRecognizer* tapImage3 = [[UITapGestureRecognizer alloc]
+                initWithTarget:self
+                        action:@selector(onTapImageInter:)];
+            [_interactCell.firstImage addGestureRecognizer:tapImage];
+            [_interactCell.secondImage addGestureRecognizer:tapImage2];
+            [_interactCell.thirdImage addGestureRecognizer:tapImage3];
+        }
+        if (_dataModel) {
+            [_interactCell bindTopic:_dataModel];
+        }
+
+        return _interactCell;
+    }
+    else if (indexPath.row == 4) {
+
+        static NSString* hotTribeCellid = @"hotTribeCell";
+        _hotTribeCell =
+            [tableView dequeueReusableCellWithIdentifier:hotTribeCellid];
+
+        if (!_hotTribeCell) {
+            _hotTribeCell =
+                [[HotTribeCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                    reuseIdentifier:hotTribeCellid];
+            _hotTribeCell.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+            _hotTribeCell.selectionStyle = UITableViewCellSelectionStyleNone;
+            UITapGestureRecognizer* tapImage =
+                [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                        action:@selector(onTapImage:)];
+            [_hotTribeCell.tribeImage addGestureRecognizer:tapImage];
+
+            UITapGestureRecognizer* tapImage2 =
+                [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                        action:@selector(onTapImage:)];
+            [_hotTribeCell.tribeImage2 addGestureRecognizer:tapImage2];
+
+            UITapGestureRecognizer* tapImage3 =
+                [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                        action:@selector(onTapImage:)];
+            [_hotTribeCell.tribeImage3 addGestureRecognizer:tapImage3];
+        }
+        if (_dataModel) {
+            [_hotTribeCell bindTribe:((IndexModel*)_dataModel.data).tribe];
+        }
+
+        return _hotTribeCell;
+    }
+    else if (indexPath.row == 5) {
+        static NSString* nameCellid = @"nameCellid";
+        UITableViewCell* nameCell =
+            [tableView dequeueReusableCellWithIdentifier:nameCellid];
+        if (!nameCell) {
+            nameCell =
+                [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                       reuseIdentifier:nameCellid];
+            nameCell.selectionStyle = UITableViewCellSelectionStyleNone;
+            nameCell.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+        }
+        nameCell.textLabel.text = @"热门商品";
+        nameCell.textLabel.textColor = COLOR_GRAY_DEFAULT_30;
+        nameCell.textLabel.font = [UIFont systemFontOfSize:15];
+        return nameCell;
+    }
+    else {
+
+        static NSString* hotGoodCellid = @"hotGoodCell";
+        _hotGoodCell = [tableView dequeueReusableCellWithIdentifier:hotGoodCellid];
+
+        if (!_hotGoodCell) {
+            _hotGoodCell =
+                [[hotGoodCell alloc] initWithStyle:UITableViewCellStyleDefault
+                                   reuseIdentifier:hotGoodCellid];
+            _hotGoodCell.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+            _hotGoodCell.selectionStyle = UITableViewCellSelectionStyleNone;
+            _hotGoodCell.messageListner = self;
+        }
+            
+        [_hotGoodCell bindGoodsModel:_goodDataModel AtIndexPath:indexPath];
+        return _hotGoodCell;
+    }
+}
+
+- (CGFloat)tableView:(UITableView*)tableView
+    heightForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+
+    if (indexPath.row == 0) {
+        return 124 * (SCREEN_WIDTH / 320) + 45;
+    }
+    else if (indexPath.row == 1) {
+
+        return 93;
+    }
+    else if (indexPath.row == 2) {
+        return 75 + 290 * 2 / 3 *(SCREEN_WIDTH / 320);
+    }
+    else if (indexPath.row == 3) {
+        return 75 + 290 * 2 / 3 * (SCREEN_WIDTH / 320);
+    }
+    else if (indexPath.row == 4) {
+
+        return 160 + 280 / 3 * (SCREEN_WIDTH / 320);
+    }
+    else if (indexPath.row == 5) {
+        return 32;
+    }
+    else {
+
+        return 70 + (SCREEN_WIDTH - 30) * 1.5 / 2;
+    }
+}
+
+//二维码扫描事件
+- (void)onRightBtn:(UIBarButtonItem*)sender
+{
+    NSDictionary* dic = @{ ACTION_Controller_Name : self };
+    [self RouteMessage:ACTION_SHOW_SYSTEM_SCAN withContext:dic];
+}
+
+// UITapGestureRecognizer
+//热门帮帮
+- (void)onTapImage:(UITapGestureRecognizer*)sender
+{
+
+    NSArray* list = ((IndexModel*)_dataModel.data).tribe;
+
+    TribeModel* tribe = (TribeModel*)list[sender.view.tag - 300];
+
+    NSDictionary* dic =
+        [NSDictionary dictionaryWithObjectsAndKeys:
+                          self, ACTION_Controller_Name,
+                      @{BANGBANG_INDEX_TRIBEID:@(tribe.shopId),BANGBANG_INDEX_SELECTINDEX:@(SELECTSHOP)},
+                      ACTION_Controller_Data, nil];
+    [self RouteMessage:ACTION_SHOW_BANGBANG_BANGINDEX withContext:dic];
+}
+
+//热门互动
+- (void)onTapImageInter:(UITapGestureRecognizer*)sender
+{
+    NSArray* list = ((IndexModel*)_dataModel.data).interaction;
+    TopicModel* topicModel = list[sender.view.tag - 200];
+
+    NSDictionary* dic = [NSDictionary
+        dictionaryWithObjectsAndKeys:self, ACTION_Controller_Name, topicModel,
+        ACTION_Controller_Data, nil];
+    [self RouteMessage:ACTION_SHOW_BANGBANG_TOPICDETAIL withContext:dic];
+}
+
+#pragma mark -
+#pragma mark UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+    [_tableView tableViewDidScroll:scrollView];
+}
+- (void)scrollViewDidEndDragging:(UIScrollView*)scrollView
+                  willDecelerate:(BOOL)decelerate
+{
+    [_tableView tableViewDidEndDragging:scrollView];
+}
+@end

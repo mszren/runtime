@@ -1,0 +1,353 @@
+//
+//  MoreActivityViewController.m
+//  FamilysHelper
+//
+//  Created by xujie on 15/7/16.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+#import "MoreActivityViewController.h"
+#import "EGOTableView.h"
+#import "IndexService.h"
+#import "MoreActivityCell.h"
+#import <DZNEmptyDataSet/UIScrollView+EmptyDataSet.h>
+
+@interface MoreActivityViewController ()<UITableViewDataSource, UITableViewDelegate, UISearchBarDelegate, EGOTableViewDelegate, UISearchControllerDelegate,UISearchDisplayDelegate,DZNEmptyDataSetSource,DZNEmptyDataSetDelegate>{
+    ASIHTTPRequest* _request;
+    DataModel* _dataModel;
+    NSString* titles;
+    BOOL _iRefresh;
+    //EGOTableView* tableView;
+}
+@property (nonatomic, strong) EGOTableView* tableView;
+@property (nonatomic, strong) UISearchBar* searchBar;
+@property (nonatomic, strong) NSMutableArray* searchResults;
+@property (nonatomic,strong) MBProgressHUD *hud;
+
+@end
+
+@implementation MoreActivityViewController
+
+
+- (void)viewDidLoad {
+    titles=@"";
+    _dataModel.nextCursor=0;
+    _iRefresh = NO;
+    [self setWhiteNavBg];
+    [super viewDidLoad];
+    [self initView];
+    if([@"user" isEqualToString:_moreType]){
+        _dataModel=[AppCache loadCache:CACHE_INDEX_USERMOREACTIVITY];
+    }else{
+        _dataModel=[AppCache loadCache:CACHE_INDEX_MOREACTIVITY];
+    }
+    if(_dataModel){
+        [_tableView reloadData];
+        [_tableView tableViewDidFinishedLoading];
+    }else{
+        [_tableView launchRefreshing];
+    }
+}
+
+
+@synthesize messageListner;
+
+- (void)pullingTableViewDidStartRefreshing:(EGOTableHeaderView*)tableView
+{
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _iRefresh = YES;
+     _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    [self loadData:NO];
+}
+
+- (void)pullingTableViewDidStartLoading:(EGOTableView*)tableView
+{
+    _iRefresh = NO;
+     _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    [self loadData:NO];
+}
+
+- (NSDate*)pullingTableViewRefreshingFinishedDate
+{
+    
+    return [NSDate date];
+}
+
+- (NSDate*)pullingTableViewLoadingFinishedDate
+{
+    
+    return [NSDate date];
+}
+
+- (void)initView
+{
+    self.view.backgroundColor = [UIColor whiteColor];
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    
+     
+    UILabel* titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 80, 14, SCREEN_WIDTH - 160, 17)];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    if([@"user" isEqualToString:_moreType]){
+        titleLabel.text = @"我的帮活动";
+    }else{
+        titleLabel.text = @"更多活动";
+
+    }
+
+    titleLabel.font = [UIFont systemFontOfSize:20];
+    titleLabel.textColor = COLOR_RED_DEFAULT_78;
+    self.navigationItem.titleView = titleLabel;
+    
+    if([@"user" isEqualToString:_moreType]){
+        [self initializeWhiteBackgroudView:@"我的帮活动"];
+    }
+    else
+    [self initializeWhiteBackgroudView:@"更多活动"];
+    
+    _tableView = [[EGOTableView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - TopBarHeight - 20)];
+    _tableView.backgroundColor = [UIColor whiteColor];
+    _tableView.backgroundView = nil;
+    _tableView.dataSource = self;
+    _tableView.delegate = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+    _tableView.emptyDataSetSource = self;
+    _tableView.emptyDataSetDelegate = self;
+    [self.view addSubview:_tableView];
+    
+    _searchBar = [[UISearchBar alloc] initWithFrame:CGRectMake(0, 50, SCREEN_WIDTH, SearchBarHeight)];
+    [_searchBar setBackgroundColor:COLOR_GRAY_LIGHT];
+    _searchBar.placeholder = @"搜索";
+    _searchBar.delegate = self;
+    _searchBar.keyboardType = UIKeyboardAppearanceDefault;
+    _searchBar.barTintColor = TableSeparatorColor;
+    [_searchBar.layer setBorderWidth:1];
+    [_searchBar.layer setBorderColor:TableSeparatorColor.CGColor];
+    _tableView.tableHeaderView = _searchBar; //把搜索框放在表头
+    
+    
+}
+- (void)loadData:(BOOL)iRefresh{
+   
+    if(_request){
+        [_request cancel];
+    }
+    NSString* userId=@"";
+    if([@"user" isEqualToString:_moreType]){
+        userId=[NSString stringWithFormat:@"%ld",(long)[CurrentAccount currentAccount].uid];
+    }
+   
+    _request=[[IndexService shareInstance] getMoreBangActivityList:_dataModel.nextCursor title:titles userId:userId nSuccess:^(DataModel *dataModel) {
+        if(dataModel.code==200){
+            _hud.hidden = YES;
+            if(_dataModel){
+                if (_iRefresh)
+                    [_dataModel.data removeAllObjects];
+                
+                [_dataModel.data addObjectsFromArray:dataModel.data];
+                _dataModel.code = dataModel.code;
+                _dataModel.nextCursor = dataModel.nextCursor;
+                _dataModel.previousCursor = dataModel.previousCursor;
+                _dataModel.error = dataModel.error;
+            }else{
+                _dataModel=dataModel;
+            }
+            if([@"user" isEqualToString:_moreType]){
+                [AppCache saveCache:CACHE_INDEX_USERMOREACTIVITY Data:_dataModel];
+            }else{
+                [AppCache saveCache:CACHE_INDEX_MOREACTIVITY Data:_dataModel];
+             }
+        }
+        _hud.hidden = YES;
+        [_tableView reloadData];
+        [_tableView tableViewDidFinishedLoading];
+    }];
+}
+- (void)loadSearchData{
+    
+    if(_request){
+        [_request cancel];
+    }
+    NSString* userId=@"";
+    if([@"user" isEqualToString:_moreType]){
+        userId=[NSString stringWithFormat:@"%d",[CurrentAccount currentAccount].uid];
+    }
+    
+    _request=[[IndexService shareInstance] getMoreBangActivityList:_dataModel.nextCursor title:titles userId:userId nSuccess:^(DataModel *dataModel) {
+        if(dataModel.code==200){
+            _hud.hidden = YES;
+            if(_dataModel){
+                if (_iRefresh)
+                    [_dataModel.data removeAllObjects];
+                
+                [_dataModel.data addObjectsFromArray:dataModel.data];
+                _dataModel.code = dataModel.code;
+                _dataModel.nextCursor = dataModel.nextCursor;
+                _dataModel.previousCursor = dataModel.previousCursor;
+                _dataModel.error = dataModel.error;
+            }else{
+                _dataModel=dataModel;
+            }
+        }
+        _hud.hidden = YES;
+        [_tableView reloadData];
+        [_tableView tableViewDidFinishedLoading];
+    }];
+}
+
+- (CGFloat)tableView:(UITableView*)tableView
+heightForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    return 210;
+}
+
+//- (CGFloat)tableView:(UITableView*)tableView
+//estimatedHeightForHeaderInSection:(NSInteger)section
+//{
+//    return 40;
+//}
+
+- (NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section
+{
+         return ((NSArray*)_dataModel.data).count;
+ }
+- (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    static NSString* moreCellId = @"MoreActivityCell";
+    MoreActivityCell* moreActivityCell = [tableView dequeueReusableCellWithIdentifier:moreCellId];
+    if (!moreActivityCell) {
+        moreActivityCell = [[MoreActivityCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:moreCellId];
+        moreActivityCell.selectionStyle = UITableViewCellSelectionStyleNone;
+        moreActivityCell.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    }
+        [moreActivityCell bindMoreActivity:_dataModel.data[indexPath.row]];
+    return moreActivityCell;
+}
+
+- (void)tableView:(UITableView*)tableView
+didSelectRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    
+    if (indexPath.section == 0) {
+        NSArray* listModel = _dataModel.data;
+        if(listModel&&listModel.count>0){
+            id obj = listModel[indexPath.row];
+            if ([obj isKindOfClass:[ActivityModel class]]) {
+                ActivityModel* activityModel = obj;
+                [self RouteMessage:ACTION_SHOW_BANGBANG_ACTIVITYDETAIL
+                       withContext:@{ ACTION_Controller_Name : messageListner,
+                                      ACTION_Controller_Data : [NSString stringWithFormat:@"%d",activityModel.activityId] }];
+            }
+        }
+    }
+}
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView
+{
+    
+    return 1;
+}
+
+#pragma mark
+#pragma mark DZNEmptyDataSetDelegate,DZNEmptyDataSetSource
+-(NSAttributedString *)titleForEmptyDataSet:(UIScrollView *)scrollView{
+    [_tableView hideFooterViewAndHeadViewState];
+    NSString *text;
+    if (![_searchBar.text isEqualToString:@""]) {
+        text = @"没有搜索到哦!";
+    }
+    else
+        text = @"没有活动哦!";
+    
+    NSDictionary *attributes = @{NSFontAttributeName: [UIFont boldSystemFontOfSize:15],
+                                 NSForegroundColorAttributeName: COLOR_GRAY_DEFAULT_OPAQUE_b9};
+    return [[NSAttributedString alloc] initWithString:text attributes:attributes];
+    
+}
+
+-(UIImage *)imageForEmptyDataSet:(UIScrollView *)scrollView{
+    
+    return [UIImage imageNamed:@"ic_tywnr"];
+}
+
+#pragma mark -
+#pragma mark UISearchBarDelegate
+
+-(void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText
+{   //搜索条输入文字修改时触发
+    titles=searchText;
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _iRefresh = YES;
+    [self loadSearchData];
+}
+//UISearchBarDelegate协议中定义的方法，当开始编辑时（搜索框成为第一响应者时）被调用。
+- (void)searchBarTextDidBeginEditing:(UISearchBar*)searchBar
+{
+    _searchBar.showsCancelButton = YES;
+}
+-(void)searchBarCancelButtonClicked:(UISearchBar *)searchBar{
+    
+    titles=@"";
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _iRefresh = YES;
+    [self loadSearchData];
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+
+}
+
+-(void)searchBarSearchButtonClicked:(UISearchBar *)searchBar{
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    [_searchBar resignFirstResponder];
+}
+
+
+
+
+
+
+#pragma mark -
+
+#pragma mark UIScrollViewDelegate
+
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+    
+    [_tableView tableViewDidScroll:scrollView];
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView*)scrollView willDecelerate:(BOOL)decelerate
+{
+    
+    [_tableView tableViewDidEndDragging:scrollView];
+}
+
+#pragma mark
+#pragma mark--ButtonTaget
+
+- (void)onBtnBack:(UIBarButtonItem*)sender
+{
+    
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+}
+
+@end

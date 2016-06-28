@@ -1,0 +1,319 @@
+//
+//  InterestGroupController.m
+//  FamilysHelper
+//  兴趣群
+//  Created by 曹亮 on 15/3/16.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "GroupInfoController.h"
+#import "InterestGroupController.h"
+#import "ChatGroupDetailController.h"
+
+#import "GroupModel.h"
+#import "GroupsCell.h"
+#import "HomeService.h"
+#import "FileCache.h"
+#import "EGOTableView.h"
+
+#define EGOListCount  10
+
+@interface InterestGroupController()<EGOTableViewDelegate,UITableViewDataSource,UITableViewDelegate>{
+    
+}
+@property (nonatomic, strong) EGOTableView * tableView;
+@property (nonatomic,assign) BOOL refreshing;
+@property (nonatomic,strong) DataModel *dataModel;
+@end
+
+@implementation InterestGroupController{
+    MBProgressHUD *_hud;
+    BOOL _isRefresh;
+    ASIHTTPRequest *_request;
+}
+@synthesize tableView = _tableView;
+
+- (id) init{
+    self = [super init];
+    if (self) {
+
+        _dataList = [[NSMutableArray alloc] initWithCapacity:0];
+    }
+    return self;
+}
+
+- (void)viewDidLoad{
+    [super viewDidLoad];
+    [self setWhiteNavBg];
+    [self initializeWhiteBackgroudView:@"兴趣群"];
+    nextCursor=@"0";
+    _tableView = [[EGOTableView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - TopBarHeight-20)];
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+    _tableView.backgroundColor = [UIColor clearColor];
+    _tableView.backgroundView = nil;
+    _tableView.dataSource = self;
+    _tableView.delegate = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleSingleLine;
+    [self.view addSubview:self.tableView];
+    [self loadData:YES];
+}
+
+
+- (void) viewWillDisappear:(BOOL)animated{
+    [super viewWillDisappear:animated];
+   }
+
+- (void)didReceiveMemoryWarning{
+    [super didReceiveMemoryWarning];
+}
+
+#pragma mark - Table view data source
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+   return ((NSArray *) _dataModel.data).count;
+}
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    static NSString * groupsCellIdentifier = @"GroupsCellIdentifier";
+    GroupsCell *cell = [tableView dequeueReusableCellWithIdentifier:
+                                       groupsCellIdentifier];
+    if (cell == nil) {
+        cell = [[GroupsCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:groupsCellIdentifier];
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        [cell setViewDefault];
+    }
+    
+    NSArray *list=_dataModel.data;
+    if (list.count > indexPath.row) {
+        GroupModel * model = [list objectAtIndex:indexPath.row];
+        [cell setViewData:model];
+    }
+
+
+    return cell;
+}
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return TableChatHomeCellHeight;
+}
+#pragma mark - Table view delegate
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    NSArray *list=_dataModel.data;
+    if (list.count > indexPath.row) {
+        GroupModel * model = [list objectAtIndex:indexPath.row];
+        [self checkIsInGroupRequest:model];
+    }
+}
+
+- (void)tableView:(UITableView *)ltableView didEndDisplayingCell:(UITableViewCell *)lcell forRowAtIndexPath:(NSIndexPath *)indexPath{
+    GroupsCell * cell = (GroupsCell *)lcell;
+    [cell cancelAllBtnImageLoad];
+}
+
+- (void)tableView:(UITableView *)ltableView willDisplayCell:(UITableViewCell *)lcell forRowAtIndexPath:(NSIndexPath *)indexPath{
+    GroupsCell * cell =(GroupsCell *)lcell;
+    NSArray *list=_dataModel.data;
+    if (list.count > indexPath.row) {
+        GroupModel * model = [list objectAtIndex:indexPath.row];
+        [cell loadHeadImg:model];
+    }
+}
+
+#pragma mark -
+#pragma mark UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView{
+    [self.tableView tableViewDidScroll:scrollView];
+}
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate{
+    [self.tableView tableViewDidEndDragging:scrollView];
+}
+#pragma mark -
+#pragma mark EGOTableViewDelegate
+
+- (void)pullingTableViewDidStartRefreshing:(EGOTableView *)tableView{
+
+    if (_dataModel) {
+        _dataModel.nextCursor=0;
+        _dataModel.previousCursor=0;
+    }
+    _isRefresh = YES;
+   _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    [self loadData:NO];
+}
+- (void)pullingTableViewDidStartLoading:(EGOTableView *)tableView{
+
+    _isRefresh = NO;
+    _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    [self loadData:NO];
+}
+- (NSDate *)pullingTableViewRefreshingFinishedDate{
+    return [NSDate date];
+}
+- (NSDate *)pullingTableViewLoadingFinishedDate{
+    return [NSDate date];
+}
+
+- (void)loadData:(BOOL)iRefresh{
+    if(iRefresh){
+        _dataModel=[AppCache loadCache:CACHE_MYHOME_GROUPS];
+    }
+    if(_dataModel&&iRefresh){
+        if (_dataModel.previousCursor == _dataModel.nextCursor) {
+            _tableView.reachedTheEnd = YES;
+        }else{
+            _tableView.reachedTheEnd = NO;
+        }
+        [_tableView reloadData];
+        return;
+    }
+    if (_request) {
+        [_request cancel];
+    }
+    _request = [[HomeService shareInstance] getGroupListV6:@"" sorttype:@"2" nextCursor:_dataModel.nextCursor onSuccess:^(DataModel *dataModel) {
+        if (dataModel.code==200) {
+            if (_dataModel && _isRefresh) {
+                NSMutableArray *list=_dataModel.data;
+                [list addObjectsFromArray:dataModel.data];
+                _dataModel.data=list;
+                _dataModel.previousCursor=dataModel.previousCursor;
+                _dataModel.nextCursor=dataModel.nextCursor;
+            }
+            else
+                _dataModel=dataModel;
+            [AppCache saveCache:CACHE_MYHOME_GROUPS Data:dataModel];
+
+            if (_dataModel.previousCursor == _dataModel.nextCursor) {
+                _tableView.reachedTheEnd = YES;
+            }else{
+                _tableView.reachedTheEnd = NO;
+            }
+            [_tableView reloadData];
+
+        }
+        else{
+            [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+            _tableView.reachedTheEnd = NO;
+        }
+        _hud.hidden = YES;
+        [_tableView tableViewDidFinishedLoading];
+    }];
+    
+}
+
+- (void) checkIsInGroupRequest:(GroupModel *) aGroupModel{
+    ASIFormDataRequest * lrequest = [[ASIFormDataRequest alloc] initWithURL:[NSURL URLWithString:CheckIsRoomMemberUrl]];
+    
+    [lrequest addRequestHeader:@"X-DJT-TOKEN" value:[CurrentAccount currentAccount].token];
+    [lrequest buildRequestHeaders];
+    [lrequest addPostValue: [NSString stringWithFormat:@"%ld",(long)[CurrentAccount currentAccount].uid] forKey: @"userId"];
+    [lrequest addPostValue: aGroupModel.name forKey: @"name"];
+    lrequest.timeOutSeconds = HTTP_TIMEOUT;
+    [lrequest startSynchronous];
+    
+    NSError *error3 = [lrequest error];
+    if (error3) {
+        NSLog(@"sync push time with devToken:%@", error3);
+    }else{
+        NSData *data =[lrequest responseData];
+        NSString * str = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        NSLog(@"str=%@",str);
+        //解析json
+        NSError *error = nil;
+        NSDictionary *totlaDic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableLeaves error:&error];
+        NSString * aerror = [totlaDic objectForKey:@"error"];
+        NSString * code = [totlaDic objectForKey:@"code"];
+        NSArray * arry = [totlaDic objectForKey:@"data"];
+        NSLog(@"arry=%@",[[arry objectAtIndex:0] objectForKey:@"result"]);
+        BOOL  result=[[[arry objectAtIndex:0] objectForKey:@"result"] boolValue];
+        
+       
+        if (code && [code isEqualToString:@"200"]) {
+          if(result)
+          {//用户已存在房间中
+            ChatGroupDetailController * controller = [[ChatGroupDetailController alloc] init];
+            controller.hidesBottomBarWhenPushed = YES;
+            controller.currentGroupModel = [UserMessageModel parseWithGroupModel:aGroupModel];
+            [self.navigationController pushViewController:controller animated:YES];
+           }else{
+            GroupInfoController * controller = [[GroupInfoController  alloc] init];
+            controller.hidesBottomBarWhenPushed = YES;
+            controller.currentUserMessageModel = [UserMessageModel parseWithGroupModel:aGroupModel];
+            [self.navigationController pushViewController:controller animated:YES];
+           }
+        }else {
+        
+        [ToastManager showToast:aerror withTime:Toast_Hide_TIME];
+        }
+    }
+
+}
+#pragma mark -
+#pragma mark ASIHTTPRequestDelegate
+- (void)GetListResult:(ASIHTTPRequest *)lrequest{
+    NSData *data =[lrequest responseData];
+    NSError *error = nil;
+    NSString * str = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    NSLog(@"str=%@",str);
+    NSDictionary *totlaDic = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableLeaves error:&error];
+    nextCursor=[NSString stringWithFormat:@"%@",[totlaDic objectForKey:@"nextCursor"]];
+  
+    NSString * aerror=[totlaDic objectForKey:@"error"];
+    if (200==[[totlaDic objectForKey:@"code"]integerValue]) {
+    
+    NSArray * arr = [totlaDic objectForKey:@"data"];
+    NSMutableArray * array = [[NSMutableArray alloc] initWithCapacity:0];
+    if (arr) {
+        GroupModel * model;
+        for (NSDictionary * dic in arr) {
+            model = [GroupModel JsonParse:dic];
+            [array addObject:model];
+        }
+    }
+    
+    if (self.refreshing) {
+        [_dataList removeAllObjects];
+        _dataList = array;
+        if (array.count < EGOListCount || array.count ==0) {
+            self.tableView.reachedTheEnd = YES;
+        }else{
+            self.tableView.reachedTheEnd = NO;
+        }
+        
+    }else{
+        if (array.count > 0) {
+            [_dataList addObjectsFromArray:array];
+           
+        }
+        if (array.count < EGOListCount || array.count ==0) {
+            self.tableView.reachedTheEnd = YES;
+        }
+    }
+    [self saveCacheData];
+    [self.tableView reloadData];
+    }else {
+        [ToastManager showToast:aerror withTime:Toast_Hide_TIME];
+        _tableView.reachedTheEnd = NO;
+    }
+     [_tableView tableViewDidFinishedLoading];
+}
+
+
+
+#pragma mark -
+#pragma mark DataManager
+- (NSString *)FileStrName{
+    NSString * str = [NSString stringWithFormat:@"InterestGroup_%@",InterestGroupListUrl];
+    return str;
+}
+- (void)saveCacheData{
+    NSArray *cacheDataArray = _dataList;
+    [FileCache storageObject:cacheDataArray url:[self FileStrName]];
+}
+- (void)loadCacheData{
+    NSArray *dataList = [FileCache loadObjectWithUrl:[self FileStrName]];
+    [_dataList removeAllObjects];
+    [_dataList addObjectsFromArray:dataList];
+}
+
+@end

@@ -1,0 +1,340 @@
+//
+//  Constaints.h
+//  Common
+//
+//  Created by 曹亮 on 15/3/11.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+/**
+ *  @brief Common UI Constaints (etc:fonts,colors)
+ *         When diffs exist between devices , use suffix like
+ * 'XXX_IPAD,XXX_IPHONE5'
+ */
+#ifndef Common_Constaints_h
+#define Common_Constaints_h
+
+#define XMPP_TIMEOUT 20
+#define HTTP_TIMEOUT 10
+#define Toast_Hide_TIME 1
+
+#define Toast_NetWork_Bad @"网络出现问题"
+
+// default value
+#define KeyBoradHeight 258
+#define KeyBoradHideY 470
+#define KTimeDifference (60 * 3)
+#define KSendMinTime 3
+
+// COLOR
+#define RGBCOLOR(r, g, b) \
+    [UIColor colorWithRed:(r) / 255.0 green:(g) / 255.0 blue:(b) / 255.0 alpha:1]
+#define RGBACOLOR(r, g, b, a)         \
+    [UIColor colorWithRed:(r) / 255.0 \
+                    green:(g) / 255.0 \
+                     blue:(b) / 255.0 \
+                    alpha:(a)]
+
+#define HEXColor_Method                                                                                          \
+    -(UIColor*)getColor : (NSString*)hexColor                                                                    \
+    {                                                                                                            \
+        hexColor = [hexColor stringByReplacingCharactersInRange:[hexColor rangeOfString:@"#"] withString:@"0x"]; \
+        long colorLong = strtoul([hexColor cStringUsingEncoding:NSUTF8StringEncoding], 0, 16);                   \
+        int R = (colorLong & 0xFF0000) >> 16;                                                                    \
+        int G = (colorLong & 0x00FF00) >> 8;                                                                     \
+        int B = colorLong & 0x0000FF;                                                                            \
+        return [UIColor colorWithRed:R / 255.0 green:G / 255.0 blue:B / 255.0 alpha:1.0];                        \
+    }
+
+#define COLOR_GREEN_DEFAULT RGBCOLOR(1, 160, 18)
+#define COLOR_GREEN_DEFAULT_OPAQUE RGBACOLOR(1, 160, 18, 0.5)
+#define COLOR_GREEN_LIGHT RGBCOLOR(39, 185, 55)
+#define COLOR_DARKGRAY_DEFAULT RGBCOLOR(61, 66, 77)
+#define COLOR_DARKGRAY_DEFAULT_OPAQUE RGBACOLOR(61, 66, 77, 0.2)
+#define COLOR_DARKGRAY_DEFAULT_OPAQUE_50 RGBACOLOR(61, 66, 77, 0.5)
+#define COLOR_DARKGRAY_DEFAULT_OPAQUE_80 RGBACOLOR(61, 66, 77, 0.8)
+#define COLOR_GRAY_DEFAULT RGBCOLOR(228, 230, 233)
+#define COLOR_GRAY_DEFAULT_OPAQUE_50 RGBACOLOR(228, 230, 233, 0.5)
+#define COLOR_GRAY_DEFAULT_OPAQUE_b9 RGBACOLOR(185, 185, 185, 1)
+#define COLOR_GRAY_DEFAULT_OPAQUE_1f RGBACOLOR(30, 30, 30, 1)
+#define COLOR_GRAY_DEFAULT_OPAQUE_7a RGBACOLOR(122, 122, 122, 1)
+#define COLOR_GRAY_DEFAULT_30 RGBACOLOR(30, 30, 30, 1)
+#define COLOR_GRAY_DEFAULT_185 RGBACOLOR(185, 185, 185, 1)
+#define COLOR_GRAY_DEFAULT_122 RGBACOLOR(122, 122, 122, 1)
+#define COLOR_GRAY_DEFAULT_62 RGBACOLOR(62, 168, 250, 1)
+#define COLOR_GRAY_DEFAULT_248 RGBACOLOR(248, 120, 50, 1)
+#define COLOR_GRAY_DEFAULT_30 RGBACOLOR(30, 30, 30, 1)
+#define COLOR_GRAY_DEFAULT_255 RGBACOLOR(255, 255, 255, 1)
+
+#define COLOR_GRAY_DEFAULT_58 RGBACOLOR(0, 191, 58, 1)
+#define COLOR_GRAY_DEFAULT_95 RGBACOLOR(49, 202, 95, 1)
+#define COLOR_GRAY_DEFAULT_232 RGBACOLOR(1, 197, 232, 1)
+#define COLOR_GRAY_DEFAULT_42 RGBACOLOR(248, 101, 42, 1)
+#define COLOR_GRAY_DEFAULT_107 RGBACOLOR(224, 111, 107, 1)
+
+#define COLOR_RED_DEFAULT_34e RGBACOLOR(231, 99, 78, 1)
+#define COLOR_RED_DEFAULT_8d RGBACOLOR(140, 140, 140, 1)
+#define COLOR_RED_DEFAULT_04 RGBACOLOR(30, 30, 30, 1)
+#define COLOR_RED_DEFAULT_BackGround RGBACOLOR(242, 242, 242, 1)
+#define COLOR_RED_DEFAULT_904 RGBACOLOR(247, 73, 4, 1)
+#define COLOR_RED_DEFAULT_78 RGBACOLOR(230, 100, 78, 1)
+
+#define COLOR_YELLO RGBACOLOR(251, 184, 22, 1)
+
+#define COLOR_GRAY_LIGHT RGBCOLOR(245, 247, 250)
+#define COLOR_GRAY_LIGHT_1 RGBCOLOR(217, 217, 217)
+#define COLOR_WHITE [UIColor whiteColor]
+#define COLOR_WHITE_OPAQUE_50 RGBACOLOR(255, 255, 255, 0.5)
+#define COLOR_WHITE_LIGHT RGBCOLOR(250, 251, 253)
+#define COLOR_CLEAR [UIColor clearColor]
+#define COLOR_RED [UIColor redColor]
+#define COLOR_VIEW_BG RGBCOLOR(245, 247, 250)
+#define COLOR_TEXTFIELD RGBCOLOR(64, 64, 64)
+#define COLOR_BLACK [UIColor blackColor]
+
+// FONT
+#define FONT_SIZE_DEFAULT 10
+#define FONT_SIZE_MEDIUM 16
+#define FONT_SIZE_LARGE 22
+#define FONT_SIZE_SONAR 18
+#define FONT_NAME_BOLD @"Helvetica-Bold"
+#define FONT_NAME @"Helvetica"
+#define FONT_SIZE(s) [UIFont fontWithName:FONT_NAME size:s]
+#define FONT_SIZE_BOLD(s) [UIFont fontWithName:FONT_NAME_BOLD size:s]
+#define FONT_NAME_SIZE(n, s) [UIFont fontWithName:n size:s]
+
+#define FONT_TITLE_DEFAULT FONT_NAME_SIZE(FONT_NAME_BOLD, FONT_SIZE_DEFAULT)
+#define FONT_TITLE_MEDIUM FONT_NAME_SIZE(FONT_NAME_BOLD, FONT_SIZE_MEDIUM)
+#define FONT_TITLE_LARGE FONT_NAME_SIZE(FONT_NAME_BOLD, FONT_SIZE_LARGE)
+#define FONT_BODY_DEFAULT FONT_NAME_SIZE(FONT_NAME, FONT_SIZE_DEFAULT)
+#define FONT_BODY_MEDIUM FONT_NAME_SIZE(FONT_NAME, FONT_SIZE_MEDIUM)
+#define FONT_BODY_LARGE FONT_NAME_SIZE(FONT_NAME, FONT_SIZE_LARGE)
+#define FONT_SONAR_TITLE FONT_NAME_SIZE(FONT_NAME_BOLD, FONT_SIZE_SONAR)
+
+#define FONT_SIZE_11 FONT_SIZE(11)
+#define FONT_SIZE_12 FONT_SIZE(12)
+#define FONT_SIZE_13 FONT_SIZE(13)
+#define FONT_SIZE_14 FONT_SIZE(14)
+#define FONT_SIZE_15 FONT_SIZE(15)
+#define FONT_SIZE_16 FONT_SIZE(16)
+#define FONT_SIZE_17 FONT_SIZE(17)
+#define FONT_SIZE_18 FONT_SIZE(18)
+#define FONT_SIZE_19 FONT_SIZE(19)
+#define FONT_SIZE_20 FONT_SIZE(20)
+
+#define FONT_SIZE_ITALIC_15 FONT_SIZE(15)
+#define FONT_SIZE_BOLD_10 FONT_NAME_SIZE(FONT_NAME_BOLD, 10)
+#define FONT_SIZE_BOLD_11 FONT_NAME_SIZE(FONT_NAME_BOLD, 11)
+#define FONT_SIZE_BOLD_12 FONT_NAME_SIZE(FONT_NAME_BOLD, 12)
+#define FONT_SIZE_BOLD_13 FONT_NAME_SIZE(FONT_NAME_BOLD, 13)
+#define FONT_SIZE_BOLD_14 FONT_NAME_SIZE(FONT_NAME_BOLD, 14)
+#define FONT_SIZE_BOLD_15 FONT_NAME_SIZE(FONT_NAME_BOLD, 15)
+#define FONT_SIZE_BOLD_16 FONT_NAME_SIZE(FONT_NAME_BOLD, 16)
+#define FONT_SIZE_BOLD_17 FONT_NAME_SIZE(FONT_NAME_BOLD, 17)
+#define FONT_SIZE_BOLD_18 FONT_NAME_SIZE(FONT_NAME_BOLD, 18)
+#define FONT_SIZE_BOLD_19 FONT_NAME_SIZE(FONT_NAME_BOLD, 19)
+#define FONT_SIZE_BOLD_20 FONT_NAME_SIZE(FONT_NAME_BOLD, 20)
+
+#define ChatContentFont [UIFont systemFontOfSize:20] //内容字体
+
+// VIEW TAG
+#define STATUS_BACKGROUND_TAG 201409
+
+// top bar
+#define TopBarHeight 44
+#define TopViewTitleColor RGBCOLOR(92, 92, 92)
+#define HomeNavBarBgColor RGBCOLOR(243, 102, 54)
+#define HomeNavBarTitleColor RGBCOLOR(255, 255, 255)
+#define HomeNavBarTitleFont FONT_SIZE_19
+#define HomeNavBarNavItemFont FONT_SIZE_16
+
+// table
+#define TableViewColor RGBCOLOR(92, 92, 92)
+#define AllTableViewColor RGBCOLOR(238, 238, 238)
+#define TableChatHomeCellHeight 60
+#define TableLeftSpaceWidth 15
+#define TableRightSpaceWidth 15
+#define TableLeftImageSpaceWidth 5
+#define TableTopSpaceWidth 10
+#define TableCellLeftImgWidth 45
+#define TableCellHeaderImageWidth 45
+#define TableCellRightTimeLabelWidth 80
+
+#define TableCellTitleFont FONT_SIZE_15
+#define TableCellTitleColor RGBCOLOR(31, 31, 31)
+#define TableCellDescFont FONT_SIZE_13
+#define TableCellTimeFont FONT_SIZE_12
+#define TableCellDescColor RGBCOLOR(120, 120, 120)
+#define TableCellNewsColor RGBCOLOR(247, 116, 64)
+#define TableSectionColor RGBCOLOR(247, 116, 64)
+#define TableSeparatorColor RGBCOLOR(224, 224, 224)
+
+#define BGViewColor RGBCOLOR(255, 255, 255)
+#define BGViewColor1 RGBCOLOR(237, 238, 241)
+#define BGViewGray RGBCOLOR(242, 242, 242)
+
+//帮信息
+#define BangInfoGray RGBCOLOR(185, 185, 185)
+#define TextColorRed RGBCOLOR(248, 100, 42)
+
+#define LightGrayColor1 RGBCOLOR(243, 243, 245)
+#define RedColor1 RGBCOLOR(221, 77, 61)
+
+// tab bar
+#define TabBarColor RGBCOLOR(239, 239, 239)
+#define TabBarHeight 50
+#define SearchBarHeight 44
+#define InviteBarHeight 55
+#define InviteBarBgColor RGBCOLOR(219, 77, 73)
+
+// SegmentedControl
+#define SegWidth 180
+#define seghight 29
+
+// chat
+#define ChatBarHeight 50
+
+#define CommonFontColor RGBCOLOR(239, 239, 239)
+
+// language
+#define Refresh_More @"加载更多"
+#define Refresh_NOData @"没有数据"
+#define Refresh_Therefresh @"下拉刷新"
+#define Refresh_Refreshing @"正在刷新"
+#define Refresh_Loading @"正在拼命加载"
+#define Refresh_Release_refresh @"释放刷新"
+#define Refresh_Release_load_more @"释放加载更多"
+#define Refresh_Pull_up_loading_more @"上拉加载更多"
+#define Refresh_No_oh @"没有了哦"
+#define Refresh_Today @"今天"
+#define Refresh_Yesterday @"昨天"
+#define Refresh_The_day_before_yesterday @"前天"
+#define Refresh_Last_update @"最后更新"
+#define Refresh_Drag_can_refresh @"下拉可以刷新..."
+#define Refresh_Undo_can_refresh @"松开即可刷新..."
+
+#define ChatCachePerCount 10
+
+// notification name
+#define NSNotificationCenterNewMessageName @"NSNotificationCenterNewMessageName"
+#define NSNotificationCenterSendMessageStatusName \
+    @"NSNotificationCenterSendMessageStatusName"
+
+#define UNReadMessageNum @"UNReadMessageNum"
+#define NSNotificationSendChangeUNReadMessageNum \
+    @"NSNotificationSendChangeUNReadMessageNum"
+
+// dir file name
+#define CHAT_MP3_Dir_Name @"CHATMP3DirName"
+#define CHAT_Img_Dir_Name @"CHATImgDirName"
+#define MSG_Img_Dir_Name @"MSGImgDirName"
+
+#define CHAT_Voice_file_ext_Name @"aud"
+#define CHAT_Image_file_ext_Name @"pic"
+
+typedef enum { FAIL = 0,
+    SUCCESS = 1 } CHAT_STATE;
+
+typedef enum { CHATTYPE_CHAT = 0,
+    CHATTYPE_GROUP = 1 } CHAT_TYPE;
+
+typedef enum {
+    CHATINFO_NML = 0, //普通消息
+    CHATINFO_FIL = 1, //文件消息
+    CHATINFO_FIL_IMG = 2, //文件消息
+    CHATINFO_FIL_Voice = 3, //文件消息
+    CHATINFO_FIL_Video = 4, //文件消息
+    CHATINFO_BFD = 5, //邀请成为好友
+    CHATINFO_YFM = 6, //同意成为好友
+    CHATINFO_RED = 7 //红包
+} CHAT_INFO_TYPE;
+
+typedef enum { Friend = 0,
+    Stranger = 1,
+    Reject = 2 } IS_FRIEND;
+
+#define Parse_Chat_State_Method                      \
+    -(CHAT_STATE)parseChatState : (NSUInteger)aIndex \
+    {                                                \
+        if (aIndex == 0) {                           \
+            return FAIL;                             \
+        }                                            \
+        else {                                       \
+            return SUCCESS;                          \
+        }                                            \
+    }
+
+#define Parse_Chat_Type_Method                     \
+    -(CHAT_TYPE)parseChatType : (NSUInteger)aIndex \
+    {                                              \
+        if (aIndex == 0) {                         \
+            return CHATTYPE_CHAT;                  \
+        }                                          \
+        else {                                     \
+            return CHATTYPE_GROUP;                 \
+        }                                          \
+    }
+
+#define Parse_Chat_Info_Type_Method                         \
+    -(CHAT_INFO_TYPE)parseChatInfoType : (NSUInteger)aIndex \
+    {                                                       \
+        if (aIndex == 1) {                                  \
+            return CHATINFO_FIL;                            \
+        }                                                   \
+        else if (aIndex == 2) {                             \
+            return CHATINFO_FIL_IMG;                        \
+        }                                                   \
+        else if (aIndex == 3) {                             \
+            return CHATINFO_FIL_Voice;                      \
+        }                                                   \
+        else if (aIndex == 4) {                             \
+            return CHATINFO_FIL_Video;                      \
+        }                                                   \
+        else if (aIndex == 5) {                             \
+            return CHATINFO_BFD;                            \
+        }                                                   \
+        else if (aIndex == 6) {                             \
+            return CHATINFO_YFM;                            \
+        }                                                   \
+        else if (aIndex == 7) {                             \
+            return CHATINFO_RED;                            \
+        }                                                   \
+        else {                                              \
+            return CHATINFO_NML;                            \
+        }                                                   \
+    }
+
+// login
+#define LoginUrl [NSString stringWithFormat:@"%@ibsApp/ibs/doLogin", JAVA_API]
+
+/**内部测试地址**/
+#define JAVA_URL @"http://java.wevaluing.com/" //分享到外部的时候使用
+#define JAVA_API @"http://218.244.129.92:8080/"
+#define IMAGE_SERVER @"http://image.wevaluing.com/"
+#define File_SERVER @"http://file.wevaluing.com/"
+
+// XMPP
+#define XMPP_SERVER_POST 5222
+#define XMPP_SERVER @"218.244.129.92"
+#define Domain @"218.244.129.92"
+#define Reource @"djt"
+
+// image url
+
+#define getOriginalImage(strName) \
+    [NSString stringWithFormat:@"%@%@", IMAGE_SERVER, strName]
+#define getFileURL(strName) \
+    [NSString stringWithFormat:@"%@/%@", File_SERVER, strName]
+
+//文件操作
+#define FILEHOMENAME [@"File_cache" stringByAppendingFormat:@"/User_%ld", [CurrentAccount currentAccount].uid]
+#define FILEPDFNAME @"PDFFileCache"
+#define FILEMP4NAME @"MP4FileCache"
+#define FILEMP3NAME @"MP3FileCache"
+#define WEBVIEW @"URLCACHE"
+
+#define FileZipUrl @"PDFZipUrl"
+#define FileVerionHistory @"FileVerionHistory"
+#define FileVerionCurrent @"FileVerionCurrent"
+
+#endif

@@ -1,0 +1,30 @@
+//
+//  ReturnOrderDetailController.m
+//  FamilysHelper
+//
+//  Created by 我 on 15/8/5.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "ReturnOrderDetailController.h"
+
+@interface ReturnOrderDetailController ()
+
+@end
+
+@implementation ReturnOrderDetailController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    [self initializeWhiteBackgroudView:@"退货详情"];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    
+}
+
+ 
+
+@end

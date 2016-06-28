@@ -1,0 +1,291 @@
+//
+//  MyTopicViewController.m
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/5/22.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "MyTopicViewController.h"
+#import "EGOTableView.h"
+#import "TribeService.h"
+#import "TopicModel.h"
+#import "MyTopicCell.h"
+#import "TopicDetailController.h"
+#import "TopicHeaderView.h"
+#import <DZNEmptyDataSet/UIScrollView+EmptyDataSet.h>
+
+@interface MyTopicViewController () <UITableViewDataSource, UITableViewDelegate, UISearchDisplayDelegate, UISearchBarDelegate, EGOTableViewDelegate,DZNEmptyDataSetDelegate,DZNEmptyDataSetSource> {
+    DataModel* _dataModel;
+}
+@end
+
+@implementation MyTopicViewController {
+
+    EGOTableView* _tableView;
+    NSMutableArray* _dataSource; //请求数据
+    NSMutableArray* _searchResults; //搜索结果
+    UISearchBar* _searchBar; //搜索框
+    UISearchDisplayController* _searchDisp;
+    UIButton *_searchButton;
+    ASIHTTPRequest *_request;
+    BOOL _isRefresh;
+}
+@synthesize messageListner;
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self initView];
+    _dataModel = [AppCache loadCache:CACHE_BANG_BANG_MYTOPIC];
+    if (!_dataModel) {
+        
+        [_tableView launchRefreshing];
+    }
+    
+}
+
+- (void)loadData
+{
+    if (_request) {
+        [_request cancel];
+    }
+    _request = [[TribeService shareInstance] getTagsInterby:[CurrentAccount currentAccount].uid
+                                           title:_searchBar.text
+                                      nextCursor:_dataModel.nextCursor
+                                       OnSuccess:^(DataModel* dataModel) {
+                                           if (dataModel.code == 200) {
+                                               
+                                               if (_dataModel && !_isRefresh) {
+                                                   [(NSMutableArray*)_dataModel.data addObjectsFromArray:dataModel.data];
+                                                   _dataModel.code = dataModel.code;
+                                                   _dataModel.error = dataModel.error;
+                                                   _dataModel.nextCursor = dataModel.nextCursor;
+                                                   _dataModel.previousCursor = dataModel.previousCursor;
+                                               }
+                                               else
+                                                   _dataModel = dataModel;
+                                               
+                                               [AppCache saveCache:CACHE_BANG_BANG_MYTOPIC Data:_dataModel];
+
+                                               if (_dataModel.previousCursor == _dataModel.nextCursor) {
+                                                   _tableView.reachedTheEnd = YES;
+                                               }
+                                               else {
+                                                   _tableView.reachedTheEnd = NO;
+                                               }
+                                               [_tableView reloadData];
+                                           }
+                                           else {
+                                               if (dataModel.code != 4) {
+                                                   
+                                                   [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+                                               }
+                                               _tableView.reachedTheEnd = NO;
+                                           }
+                                           [_tableView tableViewDidFinishedLoading];
+                                       }];
+}
+
+- (void)initView
+{
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    _tableView = [[EGOTableView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - TopBarHeight - 20 - TabBarHeight) style:UITableViewStylePlain];
+    _tableView.backgroundView = nil;
+    _tableView.dataSource = self;
+    _tableView.delegate = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+    _tableView.emptyDataSetDelegate = self;
+    _tableView.emptyDataSetSource = self;
+    [self.view addSubview:_tableView];
+
+    _searchBar = [[UISearchBar alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SearchBarHeight)];
+    _searchBar.barTintColor = TableSeparatorColor;
+    _searchBar.delegate = self;
+    _searchBar.placeholder = @"搜索已关注话题";
+    _searchBar.keyboardType = UIKeyboardAppearanceDefault;
+    [_searchBar.layer setBorderWidth:1];
+    [_searchBar.layer setBorderColor:TableSeparatorColor.CGColor];
+    _tableView.tableHeaderView = _searchBar; //把搜索框放在表头
+ 
+}
+
+- (UIView*)tableView:(UITableView*)tableView viewForHeaderInSection:(NSInteger)section
+{
+    static NSString* headerReuseIdentifier = @"TopicHeaderReuseIdentifier";
+    TopicHeaderView* headerView = [tableView dequeueReusableHeaderFooterViewWithIdentifier:headerReuseIdentifier];
+    if (!headerView) {
+        headerView = [[TopicHeaderView alloc] initWithReuseIdentifier:headerReuseIdentifier];
+    }
+    NSArray* data = _dataModel.data;
+    if (data.count > 0) {
+        TopicModel* model = ((NSArray*)_dataModel.data)[0];
+        [headerView bindHeader:model.userAttentionNum];
+    }
+    else
+        [headerView bindHeader:0];
+    return headerView;
+}
+
+- (NSString*)tableView:(UITableView*)tableView titleForHeaderInSection:(NSInteger)section
+{
+        return @"";
+}
+
+- (CGFloat)tableView:(UITableView*)tableView estimatedHeightForHeaderInSection:(NSInteger)section
+{
+ 
+        return 33;
+}
+
+- (NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section
+{
+    NSArray* listModel = _dataModel.data;
+    return listModel.count;
+}
+
+- (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    if (indexPath.section == 0) {
+        static NSString* myTopicIdentifier = @"MyTopicIdentifier";
+        MyTopicCell* cell = [tableView dequeueReusableCellWithIdentifier:myTopicIdentifier];
+        if (!cell) {
+            cell = [[MyTopicCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:myTopicIdentifier];
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        }
+        NSArray* listModel = _dataModel.data;
+        [cell bindTopic:listModel[indexPath.row]];
+        return cell;
+    }
+    return nil;
+}
+
+- (CGFloat)tableView:(UITableView*)tableView heightForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    return 126;
+}
+
+- (void)tableView:(UITableView*)tableView didSelectRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    if (indexPath.section == 0) {
+        NSArray* listModel = _dataModel.data;
+        TopicModel* topicModel = listModel[indexPath.row];
+        NSDictionary* dic = [NSDictionary
+            dictionaryWithObjectsAndKeys:self, ACTION_Controller_Name, topicModel,
+            ACTION_Controller_Data, nil];
+        [self RouteMessage:ACTION_SHOW_BANGBANG_TOPICDETAIL withContext:dic];
+    }
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+#pragma mark -
+#pragma mark EGOTableViewDelegate
+- (void)pullingTableViewDidStartRefreshing:(EGOTableHeaderView*)tableView
+{
+
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+        
+    }
+    _isRefresh = YES;
+    [self loadData];
+    
+}
+
+- (void)pullingTableViewDidStartLoading:(EGOTableView*)tableView
+{
+    _isRefresh = NO;
+    [self loadData];
+    
+}
+- (NSDate*)pullingTableViewRefreshingFinishedDate
+{
+    return [NSDate date];
+}
+- (NSDate*)pullingTableViewLoadingFinishedDate
+{
+    return [NSDate date];
+}
+
+#pragma mark
+#pragma mark DZNEmptyDataSetDelegate,DZNEmptyDataSetSource
+-(NSAttributedString *)titleForEmptyDataSet:(UIScrollView *)scrollView{
+    NSString *text = @"没有搜索到哦!";
+    [_tableView hideFooterViewAndHeadViewState];
+    NSDictionary *attributes = @{NSFontAttributeName: [UIFont boldSystemFontOfSize:15],
+                                 NSForegroundColorAttributeName: COLOR_GRAY_DEFAULT_OPAQUE_b9};
+    return [[NSAttributedString alloc] initWithString:text attributes:attributes];
+    
+}
+
+-(UIImage *)imageForEmptyDataSet:(UIScrollView *)scrollView{
+    
+    return [UIImage imageNamed:@"ic_tywnr"];
+}
+
+#pragma mark -
+#pragma mark UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+    [_tableView tableViewDidScroll:scrollView];
+}
+- (void)scrollViewDidEndDragging:(UIScrollView*)scrollView willDecelerate:(BOOL)decelerate
+{
+    [_tableView tableViewDidEndDragging:scrollView];
+}
+
+#pragma mark -
+#pragma mark UISearchBarDelegate
+
+- (void)searchBar:(UISearchBar*)searchBar textDidChange:(NSString*)searchText
+{
+ 
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _isRefresh = YES;
+    [self loadData];
+}
+
+//UISearchBarDelegate协议中定义的方法，当开始编辑时（搜索框成为第一响应者时）被调用。
+- (void)searchBarTextDidBeginEditing:(UISearchBar*)searchBar
+{
+    _searchBar.showsCancelButton = YES;
+
+}
+
+-(void)searchBarCancelButtonClicked:(UISearchBar *)searchBar{
+    
+    _searchBar.text = @"";
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _isRefresh = YES;
+    [self loadData];
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+}
+
+-(void)searchBarSearchButtonClicked:(UISearchBar *)searchBar{
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+}
+
+@end

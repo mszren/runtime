@@ -1,0 +1,23 @@
+//
+//  GroupInfoController.h
+//  FamilysHelper
+//
+//  Created by 曹亮 on 15/4/10.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "GroupModel.h"
+#import "UserMessageModel.h"
+
+@interface GroupInfoController : BaseViewController
+{
+    UITableView * tableView;
+    NSArray *staticContentSections;
+    
+    ASIHTTPRequest * request;
+}
+
+@property(nonatomic,strong) UserMessageModel * currentUserMessageModel;
+
+
+@end

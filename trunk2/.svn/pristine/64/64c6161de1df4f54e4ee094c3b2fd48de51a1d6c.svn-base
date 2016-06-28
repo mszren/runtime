@@ -1,0 +1,21 @@
+//
+//  SelectImageView.h
+//  FamilysHelper
+//
+//  Created by 我 on 15/7/1.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "ZYQAssetPickerController.h"
+
+typedef void (^Block)(NSString*);
+typedef void (^BlockImage)(UIImage*, NSArray*);
+
+@interface SelectImageView : UIView <UIImagePickerControllerDelegate, UINavigationControllerDelegate, ZYQAssetPickerControllerDelegate>
+@property (nonatomic, copy) Block blockImage;
+@property (nonatomic, copy) BlockImage returnImage;
+
+@property (nonatomic, assign) NSInteger maxNum; //判断是否要多张图片选取
+
+@end

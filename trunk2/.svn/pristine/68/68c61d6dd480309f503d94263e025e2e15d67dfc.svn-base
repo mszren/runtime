@@ -1,0 +1,83 @@
+//
+//  GroupRedPacketCell.m
+//  FamilysHelper
+//
+//  Created by 曹亮 on 15/4/11.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "GroupRedPacketCell.h"
+#import "RedPacketModel.h"
+
+@interface  GroupRedPacketCell()<EGOImageViewDelegate>
+
+@end
+
+@implementation GroupRedPacketCell
+
+#pragma mark
+#pragma mark -- init
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier
+{
+    self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
+    if (self) {
+        headImg =[[EGOImageView alloc] initWithPlaceholderImage:[UIImage imageNamed:@"defaultHeadPic.png"] delegate:self];
+    }
+    return self;
+}
+
+
+- (void)setViewDefault
+{
+    headImg.frame = CGRectMake(TableLeftSpaceWidth,  TableTopSpaceWidth, TableCellLeftImgWidth, TableCellLeftImgWidth);
+    headImg.userInteractionEnabled = YES;
+    [self.contentView addSubview:headImg];
+    
+    nickNameLab = [[UILabel alloc] init];
+    nickNameLab.backgroundColor = [UIColor clearColor];
+    nickNameLab.text = @"亲友群";
+    nickNameLab.font = TableCellTitleFont;
+    nickNameLab.textColor = TableCellTitleColor;
+    nickNameLab.textAlignment = NSTextAlignmentLeft;
+    nickNameLab.frame = CGRectMake(TableLeftSpaceWidth + TableCellLeftImgWidth+TableLeftImageSpaceWidth, TableTopSpaceWidth, 250, 25);
+    [self.contentView addSubview:nickNameLab];
+    
+    lastMessageContentLab = [[UILabel alloc] init];
+    lastMessageContentLab.backgroundColor = [UIColor clearColor];
+    lastMessageContentLab.text = @"我的一度亲友";
+    lastMessageContentLab.textAlignment = NSTextAlignmentLeft;
+    lastMessageContentLab.frame = CGRectMake(TableLeftSpaceWidth + TableCellLeftImgWidth+TableLeftImageSpaceWidth, TableTopSpaceWidth+25, SCREEN_WIDTH - (TableLeftSpaceWidth + TableCellLeftImgWidth+TableLeftImageSpaceWidth + 10), 20);
+    lastMessageContentLab.font = TableCellDescFont;
+    lastMessageContentLab.textColor = TableCellDescColor;
+    [self.contentView addSubview:lastMessageContentLab];
+    
+    
+    _statusLab = [[UILabel alloc] init];
+    _statusLab.backgroundColor = [UIColor clearColor];
+    _statusLab.text = @"已经抢完";
+    _statusLab.font = TableCellDescFont;
+    _statusLab.textColor = HomeNavBarBgColor;
+    _statusLab.textAlignment = NSTextAlignmentRight;
+    _statusLab.frame = CGRectMake(SCREEN_WIDTH - TableRightSpaceWidth-50, TableTopSpaceWidth-3, 50, 25);
+    [self.contentView addSubview:_statusLab];
+    
+}
+
+- (void)setViewData:(RedPacketModel *) aModel
+{
+    _currentRedPacketModel = aModel;
+    
+    nickNameLab.text = aModel.nickname;
+    lastMessageContentLab.text = [NSString stringWithFormat:@"已领取%@个",aModel.total_num];
+    
+    if (aModel.received_count.integerValue == 0) {
+        _statusLab.hidden = NO;
+        _statusLab.text = @"已领完";
+    }else{
+        _statusLab.hidden = YES;
+        _statusLab.text = @"";
+    }
+    
+}
+
+@end

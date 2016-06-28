@@ -1,0 +1,555 @@
+//
+//  TopicDetailCell.m
+//  FamilysHelper
+//
+//  Created by Owen on 15/6/8.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "TopicDetailCell.h"
+#import <CoreText/CoreText.h>
+#import "UIImage+Scale.h"
+#import "AwardView.h"
+#import "AnswerView.h"
+#import "TribeService.h"
+#import "UIView+Toast.h"
+#import "activityCommentView.h"
+#import "MsgModel.h"
+#import "TopicDetailController.h"
+#import "CXPhotoBrowser.h"
+#import <QuartzCore/QuartzCore.h>
+#import "ImgModel.h"
+
+
+@interface TopicDetailCell () <EGOImageViewDelegate,CXPhotoBrowserDataSource,CXPhotoBrowserDelegate> {
+
+    EGOImageView* _ivface;
+    UILabel* _lblUserName;
+    UILabel* _lblTime;
+    UILabel* _lblContent;
+    EGOImageView* _ivIconUrl;
+    UIView* _contentView;
+
+    UIButton* _btnTip;
+    UIButton* _informButton;
+    UILabel* _lblNum;
+
+    UIView* _replyView;
+
+    UILabel* _replyFloorNum;
+
+    UILabel* _replyNickName;
+
+    UILabel* _replyContentInfo;
+
+    UILabel* _replyCreateTime;
+
+    TopicModel* _topicModel;
+    CommentModel* _commentModel;
+    MsgModel* _msgModel;
+    ASIHTTPRequest* _Request;
+    AwardView* _awardView;
+    TopicDetailController* _topicDetail;
+    NSMutableArray *_imgsList;
+    
+    CXPhotoBrowser *_browser;
+
+}
+
+@end
+
+@implementation TopicDetailCell
+@synthesize messageListner;
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString*)reuseIdentifier
+{
+    self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
+    if (self) {
+
+        [self lodeData];
+
+        _browser = [[CXPhotoBrowser alloc]initWithDataSource:self delegate:self];
+        _browser.wantsFullScreenLayout = YES;
+        _topicDetail = [[TopicDetailController alloc] init];
+
+        _imgsList = [[NSMutableArray alloc]initWithCapacity:0];
+        UIImage* image = [UIImage imageNamed:@"bg_topicdetail"];
+        image = [image stretchableImageWithLeftCapWidth:floorf(image.size.width / 2) topCapHeight:floorf(image.size.height / 2)];
+
+        self.backgroundView = [[UIImageView alloc] initWithImage:image];
+
+        UIImage* ic_redpoint = [UIImage imageNamed:@"ic_redpoint"];
+        _lblNum = [[UILabel alloc] initWithFrame:CGRectMake(8, 20, ic_redpoint.size.width, ic_redpoint.size.height)];
+        _lblNum.backgroundColor = [UIColor colorWithPatternImage:ic_redpoint];
+        [_lblNum setFont:FONT_SIZE_11];
+        [_lblNum setTextAlignment:NSTextAlignmentCenter];
+        [_lblNum setTextColor:[UIColor whiteColor]];
+
+        [self addSubview:_lblNum];
+
+        UIImage* ic_blackpoint = [UIImage imageNamed:@"ic_blackpoint"];
+        _replyFloorNum = [[UILabel alloc] initWithFrame:CGRectMake(8, 10, ic_redpoint.size.width, ic_redpoint.size.height)];
+        _replyFloorNum.backgroundColor = [UIColor colorWithPatternImage:ic_blackpoint];
+        [_replyFloorNum setFont:FONT_SIZE_11];
+        [_replyFloorNum setTextAlignment:NSTextAlignmentCenter];
+        [_replyFloorNum setTextColor:[UIColor whiteColor]];
+
+        _replyNickName = [[UILabel alloc] init];
+        _replyNickName.textColor = TableCellDescColor;
+        _replyNickName.font = TableCellTimeFont;
+
+        _replyContentInfo = [[UILabel alloc] init];
+        _replyContentInfo.numberOfLines = 0;
+        _replyContentInfo.textColor = TableCellDescColor;
+        _replyContentInfo.font = TableCellTimeFont;
+        _replyContentInfo.textAlignment = NSTextAlignmentLeft;
+
+        _replyCreateTime = [[UILabel alloc] init];
+        _replyCreateTime.textColor = TableCellDescColor;
+        _replyCreateTime.font = TableCellTimeFont;
+
+        _contentView = [[UIView alloc] initWithFrame:CGRectMake(30, 10, SCREEN_WIDTH - 40, 142)];
+        _contentView.layer.cornerRadius = 3.0;
+        _contentView.backgroundColor = [UIColor whiteColor];
+        _contentView.clipsToBounds = YES;
+        [self addSubview:_contentView];
+
+        _ivface = [[EGOImageView alloc] initWithPlaceholderImage:[UIImage imageNamed:@"pic_default_40x40"]];
+        _ivface.frame = CGRectMake(10, 10, 22, 22);
+        _ivface.layer.cornerRadius = 12.0;
+        _ivface.clipsToBounds = YES;
+        _ivface.tag = 1;
+        [_contentView addSubview:_ivface];
+
+        _lblUserName = [[UILabel alloc] init];
+        _lblUserName.textColor = TableCellDescColor;
+        _lblUserName.font = TableCellTimeFont;
+        _lblUserName.frame = CGRectMake(37, 10, _contentView.frame.size.width - 127, 20);
+        [_contentView addSubview:_lblUserName];
+
+        _informButton = [UIButton buttonWithType:UIButtonTypeCustom];
+        _informButton.frame = CGRectMake(_contentView.frame.size.width - 50, 5, 40, 25);
+        [_informButton setTitle:@"举报" forState:UIControlStateNormal];
+        _informButton.titleLabel.font = [UIFont systemFontOfSize:10];
+        _informButton.layer.borderWidth = 0.8;
+        _informButton.layer.cornerRadius = 4;
+        _informButton.clipsToBounds = YES;
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+        CGColorRef borderColorRef = CGColorCreate(colorSpace, (CGFloat[]){ 0.9, 0, 0, 1 });
+        CGColorSpaceRelease(colorSpace);
+        _informButton.layer.borderColor = borderColorRef;
+        CGColorRelease(borderColorRef);
+        [_informButton setTitleColor:RedColor1 forState:UIControlStateNormal];
+        [_informButton addTarget:self action:@selector(onBtnInform:) forControlEvents:UIControlEventTouchUpInside];
+        [_contentView addSubview:_informButton];
+
+        _lblTime = [[UILabel alloc] init];
+        _lblTime.textColor = TableCellDescColor;
+        _lblTime.font = TableCellTimeFont;
+        _lblTime.textAlignment = NSTextAlignmentRight;
+        _lblTime.frame = CGRectMake(_contentView.frame.size.width - 130, 10, 70, 20);
+        [_contentView addSubview:_lblTime];
+
+        _lblContent = [[UILabel alloc] init];
+        _lblContent.numberOfLines = 0;
+        _lblContent.textColor = TableCellDescColor;
+        _lblContent.font = TableCellTimeFont;
+        _lblContent.textAlignment = NSTextAlignmentLeft;
+        _lblContent.frame = CGRectMake(10, 42, _contentView.frame.size.width - 20, 0);
+        [_contentView addSubview:_lblContent];
+
+        _ivIconUrl = [[EGOImageView alloc] initWithPlaceholderImage:[UIImage imageNamed:@"pic_default_95x95"]];
+        _ivIconUrl.frame = CGRectMake(10, 0, 0, 0);
+        _ivIconUrl.delegate = self;
+        _ivIconUrl.userInteractionEnabled = YES;
+        _ivIconUrl.tag = 1;
+        UITapGestureRecognizer *tapIconUrl = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(onTapIconUrl:)];
+        [_ivIconUrl addGestureRecognizer:tapIconUrl];
+
+        _btnTip = [UIButton buttonWithType:UIButtonTypeCustom];
+        _btnTip.frame = CGRectMake(10, 42, 120, 20);
+        [_btnTip setImage:[UIImage imageNamed:@"ic_reward"] forState:UIControlStateNormal];
+        _btnTip.titleEdgeInsets = UIEdgeInsetsMake(0, 10, 0, 0);
+        _btnTip.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeft;
+        [_btnTip.titleLabel setFont:FONT_SIZE_12];
+        [_btnTip.titleLabel setTextAlignment:NSTextAlignmentLeft];
+        [_btnTip setTitleColor:TableCellDescColor forState:UIControlStateNormal];
+        [_btnTip addTarget:self action:@selector(onBtnAward:) forControlEvents:UIControlEventTouchUpInside];
+
+        [_contentView addSubview:_btnTip];
+
+        _btnReplyNum = [UIButton buttonWithType:UIButtonTypeCustom];
+        _btnReplyNum.frame = CGRectMake(130, 42, 120, 20);
+        [_btnReplyNum setImage:[UIImage imageNamed:@"ic_discussl"] forState:UIControlStateNormal];
+        
+        _btnReplyNum.imageEdgeInsets = UIEdgeInsetsMake(0, -10, 0, _btnTip.titleLabel.bounds.size.width);
+        [_btnReplyNum.titleLabel setFont:FONT_SIZE_12];
+        [_btnReplyNum.titleLabel setTextAlignment:NSTextAlignmentCenter];
+        [_btnReplyNum setTitleColor:TableCellDescColor forState:UIControlStateNormal];
+        [_btnReplyNum addTarget:self action:@selector(onBtnAnswer:) forControlEvents:UIControlEventTouchUpInside];
+
+        [_contentView addSubview:_btnReplyNum];
+
+        _replyView = [[UIView alloc] init];
+        _replyView.layer.cornerRadius = 3.0;
+        _replyView.backgroundColor = LightGrayColor1;
+        _replyView.clipsToBounds = YES;
+
+        _btnPraise = [UIButton buttonWithType:UIButtonTypeCustom];
+        [_btnPraise setBackgroundImage:[UIImage imageNamed:@"ic_zan_hdxq_normal"] forState:UIControlStateNormal];
+        [_btnPraise setBackgroundImage:[UIImage imageNamed:@"ic_zan_hdxq_selected"] forState:UIControlStateSelected];
+        [_btnPraise addTarget:self action:@selector(onBtnPraise:) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return self;
+}
+
+- (void)lodeData
+{
+    if (_Request) {
+        [_Request cancel];
+    }
+    _Request = [[TribeService shareInstance] getUserInfoV2:[CurrentAccount currentAccount].uid
+                                                 OnSuccess:^(DataModel* dataModel) {
+                                                     if (dataModel.code == 200) {
+                                                         _msgModel = dataModel.data;
+                                                    _awardView.bangbi.text = [NSString stringWithFormat:@"%.2f", (float)_msgModel.sumPrise];
+                                                     }
+                                                 }];
+}
+
+- (void)awakeFromNib
+{
+    // Initialization code
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated
+{
+    [super setSelected:selected animated:animated];
+}
+
+- (void)bindTopic:(TopicModel*)model
+{
+    _tribeID = model.tribeld;
+    _topicModel = model;
+    _informButton.hidden = YES;
+    [_ivface setImageURL:[AppImageUtil getImageURL:model.face Size:_ivface.frame.size]];
+    [_lblTime setText:[NSDate daySinceTimeInterval:model.createTime.doubleValue / 1000]];
+    [_lblContent setText:model.contentInfo];
+    [_lblUserName setText:model.nickname];
+    UIImage* ic_redpoint = [UIImage imageNamed:@"ic_redpoint"];
+    _lblNum.backgroundColor = [UIColor colorWithPatternImage:ic_redpoint];
+    [_lblNum setText:@"1"];
+
+    NSLog(@"%ld", (long)model.tip);
+    if (model.tip == 0) {
+        [_btnTip setTitle:@"打赏" forState:UIControlStateNormal];
+        _btnTip.frame = CGRectMake(_btnTip.frame.origin.x, 42, _btnTip.frame.size.width, _btnTip.frame.size.height);
+    }
+    else
+        [_btnTip setTitle:[NSString stringWithFormat:@"打赏(%ld帮币)", (long)model.tip] forState:UIControlStateNormal];
+
+    NSInteger height = 42;
+    _lblContent.frame = CGRectMake(_lblContent.frame.origin.x, _lblContent.frame.origin.y, _lblContent.frame.size.width, model.contentHeight);
+    _lblContent.numberOfLines = 0;
+    height += model.contentHeight + 10;
+
+    if (![model.iconUrl isEqualToString:@""]) {
+        _ivIconUrl.hidden = NO;
+        _ivIconUrl.frame = CGRectMake(10, height, model.imageHeight, model.imageHeight - 10);
+        [_ivIconUrl setImageURL:[AppImageUtil getImageURL:model.iconUrl Size:_ivIconUrl.frame.size]];
+        _ivIconUrl.userInteractionEnabled = YES;
+        _btnPraise.frame = CGRectMake(_ivIconUrl.bounds.size.width - 52, _ivIconUrl.bounds.size.height - 48, 38, 38);
+        [_ivIconUrl addSubview:_btnPraise];
+        [_contentView addSubview:_ivIconUrl];
+        height += model.imageHeight;
+    }
+    else {
+        _ivIconUrl.hidden = YES;
+    }
+
+    _btnTip.frame = CGRectMake(_btnTip.frame.origin.x, height, _btnTip.frame.size.width + 20, _btnTip.frame.size.height);
+    _btnReplyNum.frame = CGRectMake(_btnReplyNum.frame.origin.x, height, _btnReplyNum.frame.size.width, _btnReplyNum.frame.size.height);
+    _btnTip.tag = 0;
+    _btnReplyNum.tag = 0;
+    height += 30;
+    _contentView.frame = CGRectMake(_contentView.frame.origin.x, _contentView.frame.origin.y, _contentView.frame.size.width, height);
+    
+    [_btnReplyNum setTitle:@"评论" forState:UIControlStateNormal];
+
+    [self setNeedsDisplay];
+}
+
+- (void)bindComment:(CommentModel*)model
+{
+
+    _commentModel = model;
+    [_lblTime setText:[NSDate daySinceTimeInterval:model.commentCreateTime.doubleValue / 1000]];
+    [_lblContent setText:model.commentContentInfo];
+    [_lblUserName setText:model.commentNickName];
+    [_ivface setImageURL:[AppImageUtil getImageURL:model.commentFace Size:_ivface.frame.size]];
+    if ([model.commentTip isEqualToString:@"0.00"]) {
+        [_btnTip setTitle:@"打赏" forState:UIControlStateNormal];
+        _btnTip.frame = CGRectMake(_btnTip.frame.origin.x, 42, _btnTip.frame.size.width, _btnTip.frame.size.height);
+    }
+    else
+        [_btnTip setTitle:[NSString stringWithFormat:@"打赏(%@帮币)", model.commentTip] forState:UIControlStateNormal];
+
+    UIImage* ic_redpoint = [UIImage imageNamed:@"ic_blackpoint"];
+    _lblNum.backgroundColor = [UIColor colorWithPatternImage:ic_redpoint];
+    [_lblNum setText:[NSString stringWithFormat:@"%ld", (long)model.commentfloorNum]];
+
+    NSInteger height = 42;
+    _lblContent.frame = CGRectMake(_lblContent.frame.origin.x, _lblContent.frame.origin.y, _lblContent.frame.size.width, model.contentHeight);
+    _lblContent.numberOfLines = 0;
+    height += model.contentHeight + 10;
+
+    if (model.commentImageName || model.imagePath) {
+        _ivIconUrl.hidden = NO;
+        _ivIconUrl.frame = CGRectMake(10, height, model.imageHeight, model.imageHeight - 10);
+        if (!model.commentImageName) {
+            
+            [_ivIconUrl setImage:[[UIImage alloc]initWithContentsOfFile:model.imagePath]];
+        }else{
+            
+            [_ivIconUrl setImageURL:[AppImageUtil getImageURL:model.commentImageName Size:_ivIconUrl.frame.size]];
+        }
+        [_contentView addSubview:_ivIconUrl];
+        height += model.imageHeight;
+    }
+    else {
+        _ivIconUrl.hidden = YES;
+    }
+
+    if (![model.replyUserId isEqualToString:@""]) { //回复别人的
+
+        _replyView.frame = CGRectMake(10, height, _contentView.frame.size.width - 20, model.replyContentHeight - 10);
+
+        [_replyFloorNum setText:[NSString stringWithFormat:@"%ld", (long)model.replyFloorNum]];
+        [_replyView addSubview:_replyFloorNum];
+        _replyNickName.frame = CGRectMake(30, 10, 100, 20);
+        [_replyNickName setText:model.replyNickName];
+        [_replyView addSubview:_replyNickName];
+
+        _replyContentInfo.frame = CGRectMake(10, 30, _replyView.frame.size.width - 20, _replyView.frame.size.height - 40);
+
+        [_replyContentInfo setText:model.replyContentInfo];
+
+        [_replyView addSubview:_replyContentInfo];
+
+        _replyCreateTime.frame = CGRectMake(10, model.replyContentHeight - 30, 100, 20);
+
+        [_replyCreateTime setText:[NSDate daySinceDate:[NSDate dateFromString:model.replyCreateTime]]];
+
+        [_replyView addSubview:_replyCreateTime];
+        [_contentView addSubview:_replyView];
+        height += model.replyContentHeight;
+    }
+    else
+        [_replyView removeFromSuperview];
+
+    _btnTip.frame = CGRectMake(_btnTip.frame.origin.x, height, _btnTip.frame.size.width, _btnTip.frame.size.height);
+    _btnReplyNum.frame = CGRectMake(_btnReplyNum.frame.origin.x, height, _btnReplyNum.frame.size.width, _btnReplyNum.frame.size.height);
+    _btnTip.tag = 1;
+    _btnReplyNum.tag = 1;
+    height += 30;
+
+    _contentView.frame = CGRectMake(_contentView.frame.origin.x, _contentView.frame.origin.y, _contentView.frame.size.width, height);
+    
+    [_btnReplyNum setTitle:@"回复" forState:UIControlStateNormal];
+
+    [self setNeedsDisplay];
+}
+
+HEXColor_Method
+
+#pragma mark -
+#pragma mark EGOImageViewDelegate
+    - (void)imageViewLoadedImage : (EGOImageView*)imageView
+{
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
+}
+- (void)imageViewFailedToLoadImage:(EGOImageView*)imageView error:(NSError*)error
+{
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
+}
+
+#define MSG_IMAGE_INDEX_CONTEXT_PHOTO1 1
+
+- (void)onTapIconUrl:(UITapGestureRecognizer*)sender
+{
+    
+    switch (sender.view.tag) {
+            
+        case MSG_IMAGE_INDEX_CONTEXT_PHOTO1:
+            
+            [self showImgs:0];
+            break;
+        default:
+            break;
+    }
+}
+
+- (void)showImgs:(NSInteger)index
+{
+    [_imgsList removeAllObjects];
+    CXPhoto* photo;
+    if (_topicModel) {
+        photo = [[CXPhoto alloc] initWithURL:[NSURL URLWithString:getOriginalImage(_topicModel.iconUrl)]];
+        
+        _topicModel = nil;
+    }
+    else
+        photo = [[CXPhoto alloc] initWithURL:[NSURL URLWithString:getOriginalImage(_commentModel.commentImageName)]];
+        
+        [_imgsList addObject:photo];
+    
+ 
+    [_browser setInitialPageIndex:index];
+    _browser.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+    [self.window.rootViewController presentViewController:_browser animated:YES completion:^{
+        
+    }];
+}
+
+
+#pragma mark -
+#pragma mark CXPhotoBrowserDataSource
+- (NSUInteger)numberOfPhotosInPhotoBrowser:(CXPhotoBrowser*)photoBrowser
+{
+    return _imgsList.count;
+}
+- (id<CXPhotoProtocol>)photoBrowser:(CXPhotoBrowser*)photoBrowser photoAtIndex:(NSUInteger)index
+{
+    if (index < _imgsList.count)
+        return [_imgsList objectAtIndex:index];
+    return nil;
+}
+#pragma mark -
+#pragma mark CXPhotoBrowserDelegate
+- (void)photoBrowser:(CXPhotoBrowser*)photoBrowser didChangedToPageAtIndex:(NSUInteger)index
+{
+}
+
+- (void)photoBrowser:(CXPhotoBrowser*)photoBrowser didFinishLoadingWithCurrentImage:(UIImage*)currentImage
+{
+}
+- (BOOL)supportReload
+{
+    return YES;
+}
+
+#pragma mark
+#pragma mark-- UIButtonAction
+
+//点赞按钮
+- (void)onBtnPraise:(UIButton*)sender
+{
+
+    [[TribeService shareInstance] priseInterBy:[CurrentAccount currentAccount].uid
+                                     objecteId:_topicModel.publishId
+                                     OnSuccess:^(DataModel* dataModel) {
+                                         if (dataModel.code == 202) {
+                                             
+                                             [ToastManager showToast:@"点赞成功" withTime:Toast_Hide_TIME];
+ 
+                                             _btnPraise.selected = YES;
+                                         }
+                                         else if (dataModel.code == 20014) {
+                                             
+                                             [ToastManager showToast:@"已经点过赞，不能再点了！" withTime:Toast_Hide_TIME];
+ 
+                                         }
+
+                                     }];
+}
+
+//打赏按钮
+- (void)onBtnAward:(UIButton*)sender
+{
+    
+       [self lodeData];
+        _awardView = [[AwardView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)];
+        _awardView.messageListner = self;
+        if (_btnTip.tag == 1) {
+            _awardView.objectId = _commentModel.discussId;
+            _awardView.targetuserId = _commentModel.commentUserId;
+            _awardView.typeId = 2;
+        }
+        else if (_btnTip.tag == 0) {
+            _awardView.objectId = _topicModel.publishId;
+            _awardView.targetuserId = _topicModel.userId;
+            _awardView.typeId = 1;
+        }
+        _awardView.bangbi.text = [NSString stringWithFormat:@"%.2f", (float)_msgModel.sumPrise];
+        
+        [self.window.rootViewController.view addSubview:_awardView];
+
+}
+
+//回复按钮
+- (void)onBtnAnswer:(UIButton*)sender
+{
+ 
+        AnswerView* answerView = [[AnswerView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)];
+        answerView.messageListner = self;
+        answerView.floorNum = _floorNum;
+        if (_btnTip.tag == 1) {
+            answerView.typeId = 2;
+            answerView.parenteld = _commentModel.discussId;
+            answerView.hudongId = _commentModel.publishId;
+            answerView.replyCommentModel = _commentModel;
+        }
+        else if (_btnTip.tag == 0) {
+            answerView.typeId = 1;
+            answerView.hudongId = _topicModel.publishId;
+        }
+        
+        answerView.tribeId = _tribeID;
+        
+        [self.window.rootViewController.view addSubview:answerView];
+    
+
+}
+//举报按钮
+- (void)onBtnInform:(UIButton*)sender
+{
+        
+        activityCommentView* commentView = [[activityCommentView alloc]
+                                            initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)];
+        commentView.type = 1;
+        commentView.objectType = 1;
+        commentView.objectId = _commentModel.discussId;
+        commentView.triberId = _tribeID;
+        
+        [self.window.rootViewController.view addSubview:commentView];
+ 
+}
+
+#pragma mark RouteMessage Delegate
+- (void)RouteMessage:(NSString*)message withContext:(id)context
+{
+    if ([message isEqualToString:NOTIFICATION_REWARD]) {
+        NSDictionary* dic = context;
+        NSInteger tip = [[dic objectForKey:NOTIFICATION_DATA] integerValue];
+        _msgModel.sumPrise -= tip;
+        _awardView.bangbi.text = [NSString stringWithFormat:@"%.2f", (float)_msgModel.sumPrise];
+
+        if (_topicModel) {
+            _topicModel.tip += tip;
+            [_btnTip setTitle:[NSString stringWithFormat:@"打赏(%ld帮币)", (long)_topicModel.tip] forState:UIControlStateNormal];
+        }
+        if (_commentModel) {
+            tip += [_commentModel.commentTip integerValue];
+            _commentModel.commentTip = [[NSString alloc]initWithFormat:@"%ld",(long)tip];
+            [_btnTip setTitle:[NSString stringWithFormat:@"打赏(%@帮币)", _commentModel.commentTip] forState:UIControlStateNormal];
+        }
+        
+         _awardView.bangbi.text = [NSString stringWithFormat:@"%.2f", (float)_msgModel.sumPrise];
+        
+    }
+    else {
+        [self.messageListner RouteMessage:message withContext:context];
+    }
+}
+
+@end

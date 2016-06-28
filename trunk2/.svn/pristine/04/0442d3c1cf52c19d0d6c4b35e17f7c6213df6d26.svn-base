@@ -1,0 +1,18 @@
+//
+//  activityCommentView.h
+//  FamilysHelper
+//
+//  Created by 我 on 15/7/4.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "TagSingTon.h"
+
+@interface activityCommentView : UIView<UITextViewDelegate,MessageRoutable>
+@property (nonatomic,assign)NSInteger type;
+@property (nonatomic,assign)NSInteger objectType;
+@property (nonatomic, assign) NSInteger objectId;
+@property (nonatomic, assign) NSInteger triberId;
+@property (nonatomic,assign) NSInteger selectRow;
+@end

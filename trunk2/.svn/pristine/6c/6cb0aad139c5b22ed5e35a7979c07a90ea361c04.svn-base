@@ -1,0 +1,51 @@
+//
+//  SearchPersonController.m
+//  FamilysHelper
+//
+//  Created by 曹亮 on 14/11/8.
+//  Copyright (c) 2014年 FamilyTree. All rights reserved.
+//
+
+#import "SearchPersonController.h"
+#import "UserInfoViewController.h"
+@interface SearchPersonController ()
+
+@end
+@implementation SearchPersonController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    // Do any additional setup after loading the view from its nib.
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (IBAction)back:(id)sender {
+    [self.navigationController popViewControllerAnimated:YES];
+}
+- (void)viewDidUnload {
+    [self setAccount:nil];
+    [super viewDidUnload];
+}
+- (IBAction)search:(id)sender {
+    UserInfoViewController *userinfo=[[UserInfoViewController alloc] initWithNibName:@"UserInfoViewController" bundle:nil];
+   // userinfo.user=self.account.text;
+    [self.navigationController pushViewController:userinfo animated:YES];
+}
+
+
+@end

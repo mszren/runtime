@@ -1,0 +1,314 @@
+//
+//  MoreInteractionViewController.m
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/6/17.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "MoreInteractionViewController.h"
+#import "EGOTableView.h"
+#import "IndexService.h"
+#import "TopicModel.h"
+#import "MoreInteractCell.h"
+#import "TopicDetailController.h"
+#import "SelectTagsViewController.h"
+#import <DZNEmptyDataSet/UIScrollView+EmptyDataSet.h>
+
+@interface MoreInteractionViewController () <UITableViewDataSource, UITableViewDelegate, UISearchBarDelegate, EGOTableViewDelegate, UISearchDisplayDelegate,DZNEmptyDataSetDelegate,DZNEmptyDataSetSource> {
+    ASIHTTPRequest* _request;
+    BOOL _iRefresh;
+}
+@property (nonatomic, strong) EGOTableView* tableView;
+@property (nonatomic, assign) BOOL refreshing;
+@property (nonatomic, strong) DataModel* dataModel;
+@property (nonatomic, strong) UISearchBar* searchBar;
+@property (nonatomic,strong) NSString * tagsId;;
+
+@end
+
+@implementation MoreInteractionViewController
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self setWhiteNavBg];
+    [self initView];
+    _tagsId = @"";
+    _dataModel = [AppCache loadCache:[NSString stringWithFormat:@"%@%@",CACHE_INDEX_MOREINTERSACTION,_tagsId]];
+    _iRefresh = NO;
+    if (!_dataModel) {
+        [_tableView launchRefreshing];
+    }
+}
+
+- (void)initView
+{
+    self.view.backgroundColor = [UIColor whiteColor];
+    self.automaticallyAdjustsScrollViewInsets = NO;
+
+
+    UILabel* titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 80, 14, SCREEN_WIDTH - 160, 17)];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    titleLabel.text = @"更多互动";
+    titleLabel.font = [UIFont systemFontOfSize:20];
+    titleLabel.textColor = COLOR_RED_DEFAULT_78;
+    self.navigationItem.titleView = titleLabel;
+    
+    UIBarButtonItem* rightButton = [[UIBarButtonItem alloc] initWithTitle:@"筛选" style:UIBarButtonItemStylePlain target:self action:@selector(onBtnSelect:)];
+    self.navigationItem.rightBarButtonItem = rightButton;
+
+    _tableView = [[EGOTableView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - TopBarHeight - 20)];
+    _tableView.backgroundColor = [UIColor whiteColor];
+    _tableView.backgroundView = nil;
+    _tableView.dataSource = self;
+    _tableView.delegate = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+    _tableView.emptyDataSetDelegate = self;
+    _tableView.emptyDataSetSource = self;
+    [self.view addSubview:_tableView];
+
+    _searchBar = [[UISearchBar alloc] initWithFrame:CGRectMake(0, 50, SCREEN_WIDTH, SearchBarHeight)];
+    _searchBar.barTintColor = TableSeparatorColor;
+    _searchBar.delegate = self;
+    _searchBar.placeholder = @"搜索";
+    _searchBar.keyboardType = UIKeyboardAppearanceDefault;
+    [_searchBar.layer setBorderWidth:1];
+    [_searchBar.layer setBorderColor:TableSeparatorColor.CGColor];
+    _tableView.tableHeaderView = _searchBar; //把搜索框放在表头
+
+}
+
+- (void)pullingTableViewDidStartRefreshing:(EGOTableHeaderView*)tableView
+{
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _iRefresh = YES;
+    [self loadData];
+}
+
+- (void)pullingTableViewDidStartLoading:(EGOTableView*)tableView
+{
+    _iRefresh = NO;
+    [self loadData];
+}
+
+- (NSDate*)pullingTableViewRefreshingFinishedDate
+{
+
+    return [NSDate date];
+}
+
+- (NSDate*)pullingTableViewLoadingFinishedDate
+{
+
+    return [NSDate date];
+}
+
+- (void)loadData
+{
+    
+    if (_request) {
+        [_request cancel];
+    }
+    
+    _request = [[IndexService shareInstance]
+        getMorePublishContentFrontPageV2:1
+                              tags:_tagsId
+                              title:_searchBar.text
+                              nextCursor:_dataModel.nextCursor
+                               onSuccess:^(DataModel* dataModel) {
+
+                                   if (dataModel.code == 200) {
+
+                                       if (_dataModel && !_iRefresh) {
+                                           [_dataModel.data addObjectsFromArray:dataModel.data];
+                                           _dataModel.code = dataModel.code;
+                                           _dataModel.nextCursor = dataModel.nextCursor;
+                                           _dataModel.previousCursor = dataModel.previousCursor;
+                                           _dataModel.error = dataModel.error;
+                                       }
+                                       else
+                                           _dataModel = dataModel;
+                                       
+                                       if ([_tagsId isEqualToString:@""]) {
+                                        [AppCache saveCache:[NSString stringWithFormat:@"%@%@",CACHE_INDEX_MOREINTERSACTION,_tagsId] Data:_dataModel];
+                                       }
+
+
+                                       if (_dataModel.previousCursor == _dataModel.nextCursor) {
+                                           _tableView.reachedTheEnd = YES;
+                                       }
+                                       else {
+                                           _tableView.reachedTheEnd = NO;
+                                       }
+                                       [_tableView reloadData];
+                                   }
+                                   else {
+                                       if (dataModel.code != 4) {
+                                           [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+                                       }
+
+                                       _tableView.reachedTheEnd = NO;
+                                   }
+
+                                   [_tableView tableViewDidFinishedLoading];
+
+                               }];
+}
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView
+{
+ 
+        return 1;
+}
+
+- (NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section
+{
+ 
+        return ((NSArray*)_dataModel.data).count;
+}
+
+- (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+ 
+    static NSString* moreCellId = @"MoreInteractionCell";
+    MoreInteractCell* moreInteractionCell = [tableView dequeueReusableCellWithIdentifier:moreCellId];
+    if (!moreInteractionCell) {
+        moreInteractionCell = [[MoreInteractCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:moreCellId];
+        moreInteractionCell.selectionStyle = UITableViewCellSelectionStyleNone;
+        moreInteractionCell.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    }
+
+    [moreInteractionCell bindModel:_dataModel.data[indexPath.row]];
+    return moreInteractionCell;
+}
+
+- (CGFloat)tableView:(UITableView*)tableView heightForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+    return 66;
+}
+
+- (void)tableView:(UITableView*)tableView didSelectRowAtIndexPath:(NSIndexPath*)indexPath
+{
+ 
+
+        TopicModel* topicModel = _dataModel.data[indexPath.row];
+        TopicDetailController* topicVc = [[TopicDetailController alloc] init];
+        topicVc.tribeId = topicModel.tribeld;
+        topicVc.publishID = topicModel.publishId;
+        [self.navigationController pushViewController:topicVc animated:YES];
+}
+
+#pragma mark
+#pragma mark DZNEmptyDataSetDelegate,DZNEmptyDataSetSource
+-(UIImage *)imageForEmptyDataSet:(UIScrollView *)scrollView{
+    
+    return [UIImage imageNamed:@"ic_tywnr"];
+}
+
+-(NSAttributedString *)titleForEmptyDataSet:(UIScrollView *)scrollView{
+    [_tableView hideFooterViewAndHeadViewState];
+    NSString *text;
+    if (![_searchBar.text isEqualToString:@""]) {
+        text = @"没有搜索到哦!";
+    }
+    else
+       text = @"没有互动哦!";
+    
+    NSDictionary *attributes = @{NSFontAttributeName: [UIFont boldSystemFontOfSize:15],
+                                 NSForegroundColorAttributeName: COLOR_GRAY_DEFAULT_OPAQUE_b9};
+    return [[NSAttributedString alloc] initWithString:text attributes:attributes];
+    
+}
+
+#pragma mark -
+-(void)onBtnSelect:(UIBarButtonItem *)sender{
+    
+    SelectTagsViewController *selectVc = [[SelectTagsViewController alloc]init];
+    selectVc.tagsBlock = ^(NSInteger tagID){
+        _tagsId = [NSString stringWithFormat:@"%ld",(long)tagID];
+        if (_dataModel) {
+            _dataModel.nextCursor = 0;
+            _dataModel.previousCursor = 0;
+        }
+        _iRefresh = YES;
+        [self loadData];
+    };
+    [self.navigationController pushViewController:selectVc animated:YES];
+}
+
+
+#pragma mark UIScrollViewDelegate
+
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+
+    [_tableView tableViewDidScroll:scrollView];
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView*)scrollView willDecelerate:(BOOL)decelerate
+{
+
+    [_tableView tableViewDidEndDragging:scrollView];
+}
+
+#pragma mark -
+#pragma mark UISearchBarDelegate
+- (void)searchBar:(UISearchBar*)searchBar textDidChange:(NSString*)searchText
+{
+    
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _iRefresh = YES;
+    [self loadData];
+}
+
+//UISearchBarDelegate协议中定义的方法，当开始编辑时（搜索框成为第一响应者时）被调用。
+- (void)searchBarTextDidBeginEditing:(UISearchBar*)searchBar
+{
+    _searchBar.showsCancelButton = YES;
+}
+
+-(void)searchBarCancelButtonClicked:(UISearchBar *)searchBar{
+    
+    _searchBar.text = @"";
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+        
+    }
+    _iRefresh = YES;
+    [self loadData];
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+}
+
+-(void)searchBarSearchButtonClicked:(UISearchBar *)searchBar{
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    
+    _searchBar.showsCancelButton = NO;
+    [_searchBar resignFirstResponder];
+}
+
+#pragma mark
+#pragma mark--ButtonTaget
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+@end

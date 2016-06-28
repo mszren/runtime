@@ -1,0 +1,153 @@
+//
+//  ChatHomeCell.m
+//  FamilysHelper
+//
+//  Created by 曹亮 on 15/3/17.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "BadgeView.h"
+#import "ChatHomeCell.h"
+#import "UserMessageModel.h"
+
+#import <QuartzCore/QuartzCore.h>
+
+@interface ChatHomeCell () <EGOImageViewDelegate>
+
+@end
+
+@implementation ChatHomeCell
+
+#pragma mark
+#pragma mark-- init
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString*)reuseIdentifier
+{
+    self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
+    if (self) {
+        headImg = [[EGOImageView alloc] initWithPlaceholderImage:[UIImage imageNamed:@"pic_default_60x60"] delegate:self];
+    }
+    return self;
+}
+
+- (void)setViewDefault
+{
+    headImg.frame = CGRectMake(TableLeftSpaceWidth, TableTopSpaceWidth, TableCellLeftImgWidth, TableCellLeftImgWidth);
+    headImg.userInteractionEnabled = YES;
+    [self.contentView addSubview:headImg];
+
+    nickNameLab = [[UILabel alloc] init];
+    nickNameLab.backgroundColor = [UIColor clearColor];
+    nickNameLab.text = @"";
+    nickNameLab.textAlignment = NSTextAlignmentLeft;
+    nickNameLab.frame = CGRectMake(TableLeftSpaceWidth + TableCellHeaderImageWidth + TableLeftSpaceWidth, TableTopSpaceWidth, SCREEN_WIDTH - TableCellLeftImgWidth - TableCellRightTimeLabelWidth, 20);
+    [self.contentView addSubview:nickNameLab];
+
+    lastMessageContentLab = [[UILabel alloc] init];
+    lastMessageContentLab.backgroundColor = [UIColor clearColor];
+    lastMessageContentLab.text = @"";
+    lastMessageContentLab.textAlignment = NSTextAlignmentLeft;
+    lastMessageContentLab.frame = CGRectMake(TableLeftSpaceWidth + TableCellHeaderImageWidth + TableLeftSpaceWidth, TableTopSpaceWidth + 25, SCREEN_WIDTH - TableCellLeftImgWidth - TableCellRightTimeLabelWidth, 20);
+    [self.contentView addSubview:lastMessageContentLab];
+
+    timeLab = [[UILabel alloc] init];
+    timeLab.backgroundColor = [UIColor clearColor];
+    timeLab.text = @"";
+    timeLab.textAlignment = NSTextAlignmentRight;
+    timeLab.frame = CGRectMake(SCREEN_WIDTH - TableCellRightTimeLabelWidth - TableRightSpaceWidth, TableTopSpaceWidth, TableCellRightTimeLabelWidth, 15);
+    timeLab.font = TableCellTimeFont;
+    timeLab.textColor = TableCellDescColor;
+    [self.contentView addSubview:timeLab];
+
+    badgeView = [[BadgeView alloc] init];
+    badgeView.frame = CGRectMake(SCREEN_WIDTH - TableRightSpaceWidth - 20, TableTopSpaceWidth + 20, 20, 20);
+    __unsafe_unretained BadgeView* blockBadgeView = badgeView;
+    badgeView.setBadgeStyle = ^{
+        blockBadgeView.bgImg.frame = CGRectMake(0, 0, 15, 15);
+        blockBadgeView.numLab.frame = blockBadgeView.bgImg.frame;
+        blockBadgeView.numLab.font = TableCellTimeFont;
+    };
+    [self addSubview:badgeView];
+}
+
+- (void)setViewData:(UserMessageModel*)aModel
+{
+    if (aModel.type == CHATTYPE_CHAT) {
+        [headImg setPlaceholderImage:[UIImage imageNamed:@"pic_default_40x40"]];
+        headImg.layer.cornerRadius = 22.0f;
+        headImg.layer.masksToBounds = YES;
+        nickNameLab.text = aModel.nick;
+        if (aModel.msg_type == CHATINFO_FIL_IMG) {
+            lastMessageContentLab.text = @"[图片]";
+            lastMessageContentLab.textColor = HomeNavBarBgColor;
+        }
+        else if (aModel.msg_type == CHATINFO_FIL_Voice) {
+            lastMessageContentLab.text = @"[语音]";
+            lastMessageContentLab.textColor = HomeNavBarBgColor;
+        }
+        else if (aModel.msg_type == CHATINFO_FIL_Video) {
+            lastMessageContentLab.text = @"[小视频]";
+            lastMessageContentLab.textColor = HomeNavBarBgColor;
+        }
+        else if (aModel.msg_type == CHATINFO_BFD) {
+            lastMessageContentLab.text = [NSString stringWithFormat:@"[%@申请成为您的好友]", aModel.nick];
+            lastMessageContentLab.textColor = HomeNavBarBgColor;
+        }
+        else {
+            lastMessageContentLab.text = aModel.content;
+            lastMessageContentLab.textColor = TableCellDescColor;
+        }
+    }
+    else if (aModel.type == CHATTYPE_GROUP) {
+        [headImg setPlaceholderImage:[UIImage imageNamed:@"pic_default_40x40"]];
+        headImg.layer.cornerRadius = 8.0f;
+        headImg.layer.masksToBounds = YES;
+        nickNameLab.text = aModel.room_nick;
+
+        if (aModel.msg_type == CHATINFO_FIL_IMG) {
+            lastMessageContentLab.text = [NSString stringWithFormat:@"%@:[图片]", aModel.nick];
+            lastMessageContentLab.textColor = HomeNavBarBgColor;
+        }
+        else if (aModel.msg_type == CHATINFO_FIL_Voice) {
+            lastMessageContentLab.text = [NSString stringWithFormat:@"%@:[语音]", aModel.nick];
+            lastMessageContentLab.textColor = HomeNavBarBgColor;
+        }
+        else if (aModel.msg_type == CHATINFO_FIL_Video) {
+            lastMessageContentLab.text = [NSString stringWithFormat:@"%@:[小视频]", aModel.nick];
+            lastMessageContentLab.textColor = HomeNavBarBgColor;
+        }
+        else if (aModel.msg_type == CHATINFO_RED) {
+            lastMessageContentLab.text = [NSString stringWithFormat:@"%@:[发了一个红包]", aModel.nick];
+            lastMessageContentLab.textColor = HomeNavBarBgColor;
+        }
+        else {
+            lastMessageContentLab.text = [NSString stringWithFormat:@"%@:%@", aModel.nick, aModel.content];
+            lastMessageContentLab.textColor = TableCellDescColor;
+        }
+    }
+    timeLab.text = [NSDate dateTimeInterval:aModel.time.doubleValue / 1000.0];
+
+    [badgeView setBadgeNum:aModel.num.integerValue];
+}
+
+- (void)cancelAllBtnImageLoad
+{
+    [headImg cancelImageLoad];
+}
+
+- (void)loadHeadImg:(UserMessageModel*)userModel
+{
+    [headImg setImageURL:[AppImageUtil getImageURL:userModel.face Size:headImg.frame.size]];
+}
+
+#pragma mark -
+#pragma mark EGOImageViewDelegate
+- (void)imageViewLoadedImage:(EGOImageView*)imageView
+{
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
+}
+- (void)imageViewFailedToLoadImage:(EGOImageView*)imageView error:(NSError*)error
+{
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
+}
+
+@end

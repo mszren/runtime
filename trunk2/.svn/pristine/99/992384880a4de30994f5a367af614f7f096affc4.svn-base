@@ -1,0 +1,230 @@
+//
+//  ReplaceController.m
+//  FamilysHelper
+//
+//  Created by 我 on 15/6/19.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "ReplaceController.h"
+#import "SystemService.h"
+#import "AppCache.h"
+#import "AppCacheConfig.h"
+#import "UIView+Toast.h"
+
+#define NUMBERS @"0123456789"
+@interface ReplaceController () <UITextFieldDelegate>
+
+@end
+
+@implementation ReplaceController {
+
+    UITextField* _num;
+    UITextField* _password;
+    UITextField* _newPassword;
+    ASIHTTPRequest *_resetCodeRequest;
+    ASIHTTPRequest *_findpassRequest;
+ 
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    self.view.backgroundColor = COLOR_VIEW_BG;
+    [self customUI];
+    [self lodaData];
+}
+
+#pragma mark
+#pragma mark-- init
+- (void)customUI
+{
+    
+    [self registerForKeyboardNotifications];
+    
+    UIBarButtonItem* rightButton = [[UIBarButtonItem alloc] initWithTitle:@"完成" style:UIBarButtonItemStylePlain target:self action:@selector(onBtnCustomer:)];
+    self.navigationItem.rightBarButtonItem = rightButton;
+    
+    UILabel* titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(SCREEN_WIDTH - 80, 14, SCREEN_WIDTH - 160, 17)];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    titleLabel.text = @"重置密码";
+    titleLabel.font = [UIFont systemFontOfSize:20];
+    titleLabel.textColor = COLOR_RED_DEFAULT_904;
+    self.navigationItem.titleView = titleLabel;
+
+
+    UIView* backView = [[UIView alloc] initWithFrame:CGRectMake(0, 15, SCREEN_WIDTH, 50)];
+    backView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:backView];
+
+    UILabel* phoneLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 0, 70, 50)];
+    phoneLabel.text = @"验证码";
+    phoneLabel.textColor = COLOR_GRAY_DEFAULT_30;
+    phoneLabel.font = [UIFont systemFontOfSize:15];
+    [backView addSubview:phoneLabel];
+
+    _num = [[UITextField alloc] initWithFrame:CGRectMake(80, 0, 200, 50)];
+    _num.delegate = self;
+    _num.placeholder = @"输入验证码";
+    _num.font = [UIFont systemFontOfSize:13];
+    _num.textColor = COLOR_GRAY_DEFAULT_30;
+    [backView addSubview:_num];
+
+    UIView* PasswordView = [[UIView alloc] initWithFrame:CGRectMake(0, 130, SCREEN_WIDTH, 50)];
+    PasswordView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:PasswordView];
+
+    UILabel* PasswordLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 0, 70, 50)];
+    PasswordLabel.text = @"新密码";
+    PasswordLabel.textColor = COLOR_GRAY_DEFAULT_30;
+    PasswordLabel.font = [UIFont systemFontOfSize:15];
+    [PasswordView addSubview:PasswordLabel];
+
+    _password = [[UITextField alloc] initWithFrame:CGRectMake(80, 0, 200, 50)];
+    _password.delegate = self;
+    _password.placeholder = @"输入新密码";
+    _password.font = [UIFont systemFontOfSize:13];
+    _password.textColor = COLOR_GRAY_DEFAULT_30;
+    [PasswordView addSubview:_password];
+
+    UIView* ConfirmView = [[UIView alloc] initWithFrame:CGRectMake(0, 181, SCREEN_WIDTH, 50)];
+    ConfirmView.backgroundColor = [UIColor whiteColor];
+    [self.view addSubview:ConfirmView];
+
+    UILabel* ConfirmLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 0, 70, 50)];
+    ConfirmLabel.text = @"确认密码";
+    ConfirmLabel.textColor = COLOR_GRAY_DEFAULT_30;
+    ConfirmLabel.font = [UIFont systemFontOfSize:15];
+    [ConfirmView addSubview:ConfirmLabel];
+
+    _newPassword = [[UITextField alloc] initWithFrame:CGRectMake(80, 0, 200, 50)];
+    _newPassword.delegate = self;
+    _newPassword.placeholder = @"输入新密码";
+    _newPassword.font = [UIFont systemFontOfSize:13];
+    _newPassword.textColor = COLOR_GRAY_DEFAULT_30;
+    [ConfirmView addSubview:_newPassword];
+}
+
+#pragma mark
+#pragma mark-- loadData
+
+- (void)lodaData
+{
+
+    if (_resetCodeRequest) {
+        [_resetCodeRequest cancel];
+    }
+    _resetCodeRequest = [[SystemService shareInstance] getResetCode:_userName
+                                             onSuccess:^(DataModel* dataModel){
+
+                                             }];
+
+}
+
+//重置密码
+- (void)onBtnCustomer:(UIButton*)sender
+{
+ 
+ 
+    if ([_newPassword.text isEqualToString:_password.text]) {
+
+        if (_findpassRequest) {
+            [_findpassRequest cancel];
+        }
+        _findpassRequest = [[SystemService shareInstance] findpass:_userName
+                                            num:_num.text
+                                            pwd:_password.text
+                                      onSuccess:^(DataModel* dataModel) {
+                                          if (dataModel.code == 200) {
+                                              
+                                              [ToastManager showToast:@"重置密码成功" withTime:Toast_Hide_TIME];
+                                              CurrentAccount* current = [CurrentAccount currentAccount];
+                                              current.password = _password.text;
+                                              current.username = _userName;
+                                              current.num = _num.text;
+                                              [AppCache saveCache:CACHE_SYSTEM_CURRENTUSER Data:current];
+                                              [self performSelector:@selector(backToLogin) withObject:nil afterDelay:1];
+                                          }
+                                          else {
+
+                                              [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+                                              
+                                          }
+
+                                      }];
+    }
+    else{
+        
+        [ToastManager showToast:@"密码输入不同，请再次确认密码" withTime:Toast_Hide_TIME];
+    }
+}
+
+-(void)backToLogin{
+    
+    [self.navigationController popToRootViewControllerAnimated:YES];
+}
+
+
+#pragma mark
+#pragma mark -- UITextFieldDelegate
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
+    NSCharacterSet *cs;
+    if(textField == _num || textField == _password || textField == _newPassword)
+    {
+        cs = [[NSCharacterSet characterSetWithCharactersInString:NUMBERS] invertedSet];
+        NSString *filtered = [[string componentsSeparatedByCharactersInSet:cs] componentsJoinedByString:@""];
+        BOOL basicTest = [string isEqualToString:filtered];
+        if(!basicTest)
+        {
+            return NO;
+        }
+    }
+    //其他的类型不需要检测，直接写入
+    return YES;
+}
+
+- (BOOL)textFieldShouldReturn:(UITextField*)textField
+{
+
+    [_num resignFirstResponder];
+    [_password resignFirstResponder];
+    [_newPassword resignFirstResponder];
+    return YES;
+}
+
+#pragma mark
+#pragma mark -- NSNotificationCenter
+
+-(void)registerForKeyboardNotifications{
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHidden:) name:UIKeyboardWillHideNotification object:nil];
+}
+
+-(void)keyboardWillShow:(NSNotification *)notify{
+    
+    [UIView animateWithDuration:0.25 animations:^{
+        
+        self.view.frame = CGRectMake(0,  -40, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }];
+}
+
+-(void)keyboardWillHidden:(NSNotification *)notify{
+    
+    [UIView animateWithDuration:0.25 animations:^{
+        self.view.frame = CGRectMake(0, TabBarHeight, SCREEN_WIDTH, SCREEN_HEIGHT);
+    }];
+    
+    
+}
+
+
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+ 
+@end

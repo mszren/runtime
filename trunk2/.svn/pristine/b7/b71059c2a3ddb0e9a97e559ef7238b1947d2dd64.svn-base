@@ -1,0 +1,303 @@
+//
+//  BangDetailController.m
+//  FamilysHelper
+//
+//  Created by 我 on 15/6/30.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "BangDetailController.h"
+#import "DataModel.h"
+#import "TribeService.h"
+#import "UIImageView+AFNetworking.h"
+#import "TribeModel.h"
+#import "TagModel.h"
+ 
+@interface BangDetailController ()<UIScrollViewDelegate,UIWebViewDelegate>
+@property (nonatomic,strong)DataModel *dataModel;
+
+
+@end
+
+@implementation BangDetailController{
+    UIScrollView *_scrollView;
+    TribeModel *_tribe;
+    UIView *_phoneView;
+    UIWebView *_webView;
+    UIWebView *_phoneWebView;
+    EGOImageView *_shopImage;
+    UILabel *_hostName;
+    EGOImageView *_hostImage;
+    UILabel *_address;
+    UILabel *_phone;
+    UIView *_topicView;
+    UILabel *_tag;
+    
+    MBProgressHUD *_hud;
+    ASIHTTPRequest *_request;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self loadData];
+    [self initView];
+
+}
+
+-(void)loadData{
+   _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    if (_request) {
+        [_request cancel];
+    }
+    _request = [[TribeService shareInstance] getTribeInfoBy:self.shopId userID:[CurrentAccount currentAccount].uid OnSuccess:^(DataModel *dataModel) {
+        
+        if (dataModel.code == 200) {
+            _dataModel = dataModel;
+            _tribe = _dataModel.data;
+            [self bindData];
+        }
+        
+    }];
+}
+
+#pragma mark
+#pragma mark -- initView
+-(void)initView{
+    
+    UILabel *titleLabel = [[UILabel alloc]initWithFrame:CGRectMake(SCREEN_WIDTH - 80, 14, SCREEN_WIDTH - 160, 17)];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    titleLabel.text = @"帮详情";
+    titleLabel.font = [UIFont systemFontOfSize:18];
+    titleLabel.textColor = COLOR_RED_DEFAULT_904;
+    self.navigationItem.titleView = titleLabel ;
+    
+    _scrollView = [[UIScrollView alloc]initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 64)];
+    _scrollView.bounces = NO;
+    _scrollView.showsHorizontalScrollIndicator = NO;
+    _scrollView.showsVerticalScrollIndicator = NO;
+    _scrollView.delegate = self;
+    _scrollView.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    [self.view addSubview:_scrollView];
+    
+    //shopView
+    UIView *shopView = [[UIView alloc]initWithFrame:CGRectMake(0, 10, SCREEN_WIDTH, 59)];
+    shopView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:shopView];
+    
+    _shopImage = [[EGOImageView alloc] initWithPlaceholderImage:[UIImage imageNamed:@"pic_default_40x40"]];
+    _shopImage.frame = CGRectMake(12, 8, 40, 40);
+    _shopImage.layer.cornerRadius = 20;
+    _shopImage.clipsToBounds = YES;
+    [shopView addSubview:_shopImage];
+    
+    UILabel *shopLabel = [[UILabel alloc]initWithFrame:CGRectMake(62, 0, SCREEN_WIDTH - 62, 59)];
+    shopLabel.text = _tribe.shopName;
+    shopLabel.font = [UIFont systemFontOfSize:15];
+    shopLabel.textColor =  COLOR_GRAY_DEFAULT_OPAQUE_1f;
+    [shopView addSubview:shopLabel];
+    
+    //bangzhu
+    UIView *hostView = [[UIView alloc]initWithFrame:CGRectMake(0, 70, SCREEN_WIDTH, 59)];
+    hostView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:hostView];
+    
+    UILabel *hostLabel = [[UILabel alloc]initWithFrame:CGRectMake(10, 0, 200, 59)];
+    hostLabel.textColor = COLOR_RED_DEFAULT_04;
+    hostLabel.text = @"帮主";
+    hostLabel.font = [UIFont systemFontOfSize:15];
+    [hostView addSubview:hostLabel];
+    
+    _hostName = [[UILabel alloc]init];
+    _hostName.textColor = COLOR_RED_DEFAULT_04;
+    _hostName.font = [UIFont systemFontOfSize:15];
+    [hostView addSubview:_hostName];
+    
+    _hostImage = [[EGOImageView alloc]initWithPlaceholderImage:[UIImage imageNamed:@"pic_default_40x40"]];
+    _hostImage.layer.cornerRadius = 16;
+    _hostImage.clipsToBounds = YES;
+    [hostView addSubview:_hostImage];
+    
+    //address
+    UIView *addressView = [[UIView alloc]initWithFrame:CGRectMake(0, 130, SCREEN_WIDTH, 59)];
+    addressView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:addressView];
+    
+    UILabel *addressLabel = [[UILabel alloc]initWithFrame:CGRectMake(10, 0, 30, 59)];
+    addressLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_1f;
+    addressLabel.font = [UIFont systemFontOfSize:15];
+    addressLabel.text = @"地址";
+    [addressView addSubview:addressLabel];
+    
+    _address = [[UILabel alloc]initWithFrame:CGRectMake(50, 0, SCREEN_WIDTH - 50, 59)];
+    _address.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    _address.font = [UIFont systemFontOfSize:15];
+    [addressView addSubview:_address];
+    
+
+    //PhoneView
+    _phoneView = [[UIView alloc]initWithFrame:CGRectMake(0, 190, SCREEN_WIDTH, 59)];
+    _phoneView.backgroundColor = [UIColor whiteColor];
+    _phoneView.userInteractionEnabled =YES;
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(onTap:)];
+    [_phoneView  addGestureRecognizer:tap];
+    [_scrollView addSubview:_phoneView];
+    
+    UILabel *phoneLabel = [[UILabel alloc]initWithFrame:CGRectMake(10, 0, 45, 59)];
+    phoneLabel.textColor = COLOR_GRAY_DEFAULT_OPAQUE_1f;
+    phoneLabel.font = [UIFont systemFontOfSize:15];
+    phoneLabel.text = @"帮电话";
+    [_phoneView addSubview:phoneLabel];
+    
+    _phone = [[UILabel alloc]initWithFrame:CGRectMake(65, 0, SCREEN_WIDTH - 110, 59)];
+    _phone.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    _phone.font = [UIFont systemFontOfSize:15];
+    [_phoneView addSubview:_phone];
+    
+    UIView *graryView = [[UIView alloc]initWithFrame:CGRectMake(SCREEN_WIDTH - 55, 0, 55, 59)];
+    graryView.backgroundColor = COLOR_RED_DEFAULT_BackGround;
+    [_phoneView addSubview:graryView];
+    
+    UIImageView *phoneImage = [[UIImageView alloc]initWithFrame:CGRectMake(18, 19, 19, 20)];
+    phoneImage.image = [UIImage imageNamed:@"ic_tel"];
+    [graryView addSubview:phoneImage];
+    
+    //TopicView
+    _topicView = [[UIView alloc]initWithFrame:CGRectMake(0,250, SCREEN_WIDTH, 59)];
+    _topicView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:_topicView];
+    
+    UILabel *topicLabel = [[UILabel alloc]initWithFrame:CGRectMake(10, 0, 45, 59)];
+    topicLabel.textColor = COLOR_RED_DEFAULT_04;
+    topicLabel.font = [UIFont systemFontOfSize:15];
+    topicLabel.text = @"帮话题";
+    [_topicView addSubview:topicLabel];
+    
+
+    
+    //tagView
+    UIView *tagView = [[UIView alloc]initWithFrame:CGRectMake(0, 310, SCREEN_WIDTH, 59)];
+    tagView.backgroundColor = [UIColor whiteColor];
+    [_scrollView addSubview:tagView];
+    
+    UILabel *tagLabel = [[UILabel alloc]initWithFrame:CGRectMake(10, 0, 45, 59)];
+    tagLabel.textColor = COLOR_RED_DEFAULT_04;
+    tagLabel.font = [UIFont systemFontOfSize:15];
+    tagLabel.text = @"帮标签";
+    [tagView addSubview:tagLabel];
+    
+    _tag = [[UILabel alloc]initWithFrame:CGRectMake(65, 0, SCREEN_WIDTH - 65, 59)];
+    _tag.textColor = COLOR_GRAY_DEFAULT_OPAQUE_7a;
+    _tag.font = [UIFont systemFontOfSize:15];
+    [tagView addSubview:_tag];
+    
+    //bangStoty
+    UILabel *storyLabel = [[UILabel alloc]initWithFrame:CGRectMake(10, 370, SCREEN_WIDTH - 10, 35)];
+    storyLabel.textColor = COLOR_RED_DEFAULT_78;
+    storyLabel.font = [UIFont systemFontOfSize:15];
+    storyLabel.text = @"帮故事";
+    [_scrollView addSubview:storyLabel];
+    
+    //WebView
+    _webView = [[UIWebView alloc]initWithFrame:CGRectMake(0, 405, SCREEN_WIDTH,_scrollView.bounds.size.height - 405)];
+    _webView.delegate = self;
+    [_webView setScalesPageToFit:NO];
+    [_webView setUserInteractionEnabled:NO];
+    [_scrollView addSubview:_webView];
+    
+}
+
+-(void)bindData{
+    
+    [_shopImage setImageURL:[AppImageUtil getImageURL:_tribe.shopLogo Size:_shopImage.frame.size]];
+    
+    _hostName.frame = CGRectMake(SCREEN_WIDTH - _tribe.nickname.length * 18, 0, _tribe.nickname.length * 15, 59);
+    _hostName.text = _tribe.nickname;
+    
+    _hostImage.frame = CGRectMake(SCREEN_WIDTH - 37 - _hostName.bounds.size.width , 12.5, 32, 32);
+    [_hostImage setImageURL:[AppImageUtil getImageURL:_tribe.face Size:_hostImage.frame.size]];
+    
+    _address.text = _tribe.shopAddress;
+    _phone.text = _tribe.shopMobile;
+    
+    if (_tribe.tagsList&&_tribe.tagsList.count>0) {
+        NSInteger _xPosition=70;
+        NSInteger _yPosition=21;
+        NSInteger _tagWidth=40;
+        for (TagModel *tag in _tribe.tagsList) {
+            
+            UILabel  *temp=[[UILabel alloc] init];
+            [temp setFont:FONT_SIZE_12];
+            NSString *strTagName=[NSString stringWithFormat:@"#%@#", tag.tagsName];
+            CGRect labelRect = [strTagName boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, 20) options:(NSStringDrawingUsesLineFragmentOrigin|NSStringDrawingUsesFontLeading)  attributes:[NSDictionary dictionaryWithObject:FONT_SIZE_12 forKey:NSFontAttributeName] context:nil];
+            temp.frame=CGRectMake(_xPosition+5, _yPosition, labelRect.size.width+5, 20);
+            temp.text=strTagName;
+            [temp setTextColor:[self getColor:tag.tagsColor]];
+            [_topicView addSubview:temp];
+            _xPosition+=labelRect.size.width+5;
+        }
+    }
+    _tag.text = _tribe.tribeName;
+    
+     [_webView loadHTMLString:_tribe.shopIntro baseURL:nil];
+}
+
+
+HEXColor_Method
+
+#pragma mark
+#pragma maek -- UIWebViewDelegate
+-(void)webViewDidFinishLoad:(UIWebView *)webView{
+    
+    [_webView stringByEvaluatingJavaScriptFromString:
+     @"var script = document.createElement('script');"
+     "script.type = 'text/javascript';"
+     "script.text = \"function ResizeImages() { "
+     "var myimg,oldwidth;"
+     "var maxwidth=320;" //缩放系数
+     "for(i=0;i <document.images.length;i++){"
+     "myimg = document.images[i];"
+     "if(myimg.width > maxwidth){"
+     "oldwidth = myimg.width;"
+     "myimg.width = maxwidth;"
+     "myimg.height = myimg.height * (maxwidth/oldwidth);"
+     "}"
+     "}"
+     "}\";"
+     "document.getElementsByTagName('head')[0].appendChild(script);"];
+    
+    [_webView stringByEvaluatingJavaScriptFromString:@"ResizeImages();"];
+    
+    
+    CGSize actualSize = [_webView sizeThatFits:CGSizeZero];
+    CGRect newFrame = _webView.frame;
+    newFrame.size.height = actualSize.height;
+    _webView.frame = newFrame;
+    
+    CGSize newsize=CGSizeMake(320, 405 + _webView.frame.size.height);
+    _scrollView.contentSize=newsize;
+    _hud.hidden = YES;
+    
+}
+
+//UITapGestureRecognizer
+-(void)onTap:(UITapGestureRecognizer *)sender{
+    
+    NSURL *phoneUrl =[NSURL URLWithString:[NSString stringWithFormat:@"tel:%@",_tribe.shopMobile]];
+    
+    if (_phoneWebView==nil) {
+        _phoneWebView = [[UIWebView alloc]initWithFrame:CGRectZero];
+    }
+    [_phoneWebView loadRequest:[NSURLRequest requestWithURL:phoneUrl]];
+//     NSString *allString = [NSString stringWithFormat:@"tel:10086"];
+//    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:allString]];
+}
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+
+
+@end

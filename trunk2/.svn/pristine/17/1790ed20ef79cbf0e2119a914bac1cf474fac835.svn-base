@@ -1,0 +1,17 @@
+//
+// Prefix header for all source files of the 'Core' target in the 'Core' project
+//
+
+#ifdef __OBJC__
+    #import <Foundation/Foundation.h>
+    #import <UIKit/UIKit.h>
+    #import "Debug.h"
+    #import "CoreConfig.h"
+
+    #import "Reachability.h"
+
+
+    #import "NSDate_TimeZone.h"
+
+
+#endif

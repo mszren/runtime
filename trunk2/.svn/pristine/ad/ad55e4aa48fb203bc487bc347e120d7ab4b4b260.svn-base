@@ -1,0 +1,290 @@
+//
+//  CommentModel.m
+//  Common
+//
+//  Created by Owen on 15/5/23.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "CommentModel.h"
+#import "ActivityModel.h"
+#import "ImgModel.h"
+
+@implementation CommentModel
+
+- (id)copyWithZone:(NSZone *)zone
+{
+    CommentModel *copy = [[[self class] allocWithZone:zone] init];
+    copy.commentStauts = self.commentStauts;
+    copy.commentfloorNum = self.commentfloorNum;
+    copy.commentCreateTime = [self.commentCreateTime copy];
+    copy.commentTip = [self.commentTip copy];
+    
+    copy.replyUserId=self.replyUserId;
+    copy.replyFace=[self.replyFace copy];
+    copy.replyNickName=[self.replyNickName copy];
+    copy.rownum=self.rownum;
+    copy.commentFace=self.commentFace;
+    copy.commentNickName=[self.commentNickName copy];
+    copy.discussId=self.discussId;
+    copy.replyCreateTime=[self.replyCreateTime copy];
+    copy.replyStauts=self.replyStauts;
+    copy.commentUserId=self.commentUserId;
+    copy.replyFloorNum=self.replyFloorNum;
+    copy.replyContentInfo=self.replyContentInfo;
+    copy.commentContentInfo=[self.commentContentInfo copy];
+    copy.commentImageName=[self.commentImageName copy];
+    
+    copy.content=[self.content copy];
+    copy.createTime=[self.createTime copy];
+    copy.nickname=[self.nickname copy];
+    copy.userId=self.userId;
+    copy.parentComment=[self.parentComment copy];
+    copy.childCommentList=[self.childCommentList copy];
+    copy.imgurl = [self.imgurl copy];
+    copy.face = [self.face copy];
+    copy.commentList = [self.commentList copy];
+    copy.commentNum = self.commentNum;
+    copy.hitNum = self.hitNum;
+    copy.imageList = [self.imageList copy];
+    copy.replyContent = [self.replyContent copy];
+    copy.replyId = self.replyId;
+    
+    copy.commentContent = [self.commentContent copy];
+    copy.imageName = [self.imageName copy];
+    copy.sortNumber = self.sortNumber;
+    copy.shopName = [self.shopName copy];
+    copy.publishId = self.publishId;
+    return copy;
+}
+
+- (void)encodeWithCoder:(NSCoder *)aCoder{
+    [aCoder encodeInt64:self.commentStauts forKey:@"commentStauts"];
+    [aCoder encodeInt64:self.commentfloorNum forKey:@"commentfloorNum"];
+    [aCoder encodeObject:self.commentCreateTime forKey:@"commentCreateTime"];
+    [aCoder encodeObject:self.commentTip forKey:@"commentTip"];
+    
+    [aCoder encodeObject:self.replyUserId forKey:@"replyUserId"];
+    [aCoder encodeObject:self.replyFace forKey:@"replyFace"];
+    [aCoder encodeObject:self.replyNickName forKey:@"replyNickName"];
+    
+    [aCoder encodeInt64:self.rownum forKey:@"rownum"];
+    [aCoder encodeObject:self.commentFace forKey:@"commentFace"];
+    [aCoder encodeObject:self.commentNickName forKey:@"commentNickName"];
+    
+    [aCoder encodeInt64:self.discussId forKey:@"discussId"];
+    [aCoder encodeObject:self.replyCreateTime forKey:@"replyCreateTime"];
+    [aCoder encodeInt64:self.replyStauts forKey:@"replyStauts"];
+    
+    [aCoder encodeInt64:self.commentUserId forKey:@"commentUserId"];
+    [aCoder encodeInt64:self.replyFloorNum forKey:@"replyFloorNum"];
+    [aCoder encodeObject:self.replyContentInfo forKey:@"replyContentInfo"];
+    
+    [aCoder encodeObject:self.commentContentInfo forKey:@"commentContentInfo"];
+    [aCoder encodeObject:self.commentImageName forKey:@"commentImageName"];
+    
+    [aCoder encodeObject:self.content forKey:@"content"];
+    [aCoder encodeObject:self.parentComment forKey:@"childCommentList"];
+    [aCoder encodeObject:self.createTime forKey:@"createTime"];
+    [aCoder encodeInt64:self.userId forKey:@"userId"];
+    [aCoder encodeObject:self.nickname forKey:@"nickname"];
+    [aCoder encodeObject:self.childCommentList forKey:@"childCommentList"];
+    [aCoder encodeObject:self.imgurl forKey:@"imgurl"];
+    [aCoder encodeObject:self.face forKey:@"face"];
+    
+     [aCoder encodeObject:self.commentList forKey:@"commentList"];
+     [aCoder encodeObject:self.imageList forKey:@"imageList"];
+     [aCoder encodeObject:self.replyContent forKey:@"replyContent"];
+    [aCoder encodeInt64:self.commentNum forKey:@"commentNum"];
+    [aCoder encodeInt64:self.hitNum forKey:@"hitNum"];
+    [aCoder encodeInt64:self.replyId forKey:@"replyId"];
+    
+    [aCoder encodeObject:self.commentContent forKey:@"commentContent"];
+    [aCoder encodeObject:self.imageName forKey:@"imageName"];
+    [aCoder encodeInt64:self.sortNumber forKey:@"sortNumber"];
+    [aCoder encodeObject:self.shopName forKey:@"shopName"];
+    [aCoder encodeInteger:self.publishId forKey:@"publishId"];
+    [aCoder encodeObject:self.imagePath forKey:@"imagePath"];
+}
+
+- (id)initWithCoder:(NSCoder *)aDecoder{
+    self = [super init];
+    if (self) {
+        self.commentStauts = [aDecoder decodeIntegerForKey:@"commentStauts"];
+        self.commentfloorNum =[aDecoder decodeIntegerForKey:@"commentfloorNum"];
+        self.commentCreateTime = [aDecoder decodeObjectForKey:@"commentCreateTime"];
+        self.commentTip = [aDecoder decodeObjectForKey:@"commentTip"];
+        self.replyUserId=[aDecoder decodeObjectForKey:@"replyUserId"];
+        self.replyFace=[aDecoder decodeObjectForKey:@"replyFace"];
+        self.replyNickName=[aDecoder decodeObjectForKey:@"replyNickName"];
+        self.rownum=[aDecoder decodeIntegerForKey:@"rownum"];
+        self.commentFace=[aDecoder decodeObjectForKey:@"commentFace"];
+        self.commentNickName=[aDecoder decodeObjectForKey:@"commentNickName"];
+        self.discussId=[aDecoder decodeIntegerForKey:@"discussId"];
+        self.replyCreateTime=[aDecoder decodeObjectForKey:@"replyCreateTime"];
+        self.replyStauts=[aDecoder decodeIntegerForKey:@"replyStauts"];
+        self.commentUserId=[aDecoder decodeIntegerForKey:@"commentUserId"];
+        self.replyFloorNum=[aDecoder decodeIntegerForKey:@"replyFloorNum"];
+        self.replyContentInfo=[aDecoder decodeObjectForKey:@"replyContentInfo"];
+        self.commentContentInfo=[aDecoder decodeObjectForKey:@"commentContentInfo"];
+        self.commentImageName=[aDecoder decodeObjectForKey:@"commentImageName"];
+        self.content=[aDecoder decodeObjectForKey:@"content"];
+        self.createTime=[aDecoder decodeObjectForKey:@"createTime"];
+        self.nickname=[aDecoder decodeObjectForKey:@"nickname"];
+        self.userId=[aDecoder decodeIntForKey:@"userId"];
+        
+        self.parentComment=[aDecoder decodeObjectForKey:@"parentComment"];
+        self.childCommentList=[aDecoder decodeObjectForKey:@"childCommentList"];
+        self.imgurl = [aDecoder decodeObjectForKey:@"imgurl"];
+        self.face = [aDecoder decodeObjectForKey:@"face"];
+        
+         self.commentList = [aDecoder decodeObjectForKey:@"commentList"];
+         self.imageList = [aDecoder decodeObjectForKey:@"imageList"];
+         self.replyContent = [aDecoder decodeObjectForKey:@"replyContent"];
+        
+        self.commentNum=[aDecoder decodeIntForKey:@"commentNum"];
+        self.hitNum=[aDecoder decodeIntForKey:@"hitNum"];
+        self.replyId=[aDecoder decodeIntForKey:@"replyId"];
+        
+        self.commentContent = [aDecoder decodeObjectForKey:@"commentContent"];
+        self.imageName = [aDecoder decodeObjectForKey:@"imageName"];
+        self.shopName = [aDecoder decodeObjectForKey:@"shopName"];
+        self.sortNumber=[aDecoder decodeIntForKey:@"sortNumber"];
+        self.publishId = [aDecoder decodeIntegerForKey:@"publishId"];
+        self.imagePath = [aDecoder decodeObjectForKey:@"imagePath"];
+    }
+    return self;
+}
+
++ (CommentModel *)JsonParse:(NSDictionary *)dic{
+    
+    CommentModel * comment = [[CommentModel alloc] init];
+    if (([dic objectForKey:@"parentComment"] != [NSNull null]) && ([dic objectForKey:@"parentComment"] != nil)) {
+        NSArray *parentComment=[dic objectForKey:@"parentComment"];
+        if (parentComment) {
+            comment.parentComment=[CommentModel JsonParse:[parentComment objectAtIndex:0]];
+        }
+    }
+    
+    NSMutableArray *childCommentListdataArray=[[NSMutableArray alloc] initWithCapacity:0];
+    comment.childCommentList = ([dic objectForKey:@"childCommentList"] != [NSNull null])&&([dic objectForKey:@"childCommentList"] !=nil) ? [dic objectForKey:@"childCommentList"]  : @"";
+    if([comment.childCommentList isKindOfClass:[NSArray class]]) {
+        for(id data in  comment.childCommentList){
+            [childCommentListdataArray addObject:[CommentModel JsonParse:data ]];
+        }
+    }
+    comment.childCommentList=childCommentListdataArray;
+    
+    comment.imgurl = ([dic objectForKey:@"imgurl"] != [NSNull null])&&([dic objectForKey:@"imgurl"] !=nil) ? [dic objectForKey:@"imgurl"]  : @"";
+    comment.userId = ([dic objectForKey:@"userId"] != [NSNull null])&&([dic objectForKey:@"userId"] !=nil) ? [[dic objectForKey:@"userId"] integerValue] : 0;
+    
+    comment.content = ([dic objectForKey:@"content"] != [NSNull null])&&([dic objectForKey:@"content"] !=nil) ? [dic objectForKey:@"content"] : @"";
+    NSDictionary *dict=[dic objectForKey:@"createTime"];
+    comment.createTime=([dict objectForKey:@"time"] != [NSNull null])&&([dict objectForKey:@"time"] !=nil) ? [dict objectForKey:@"time"] : @"";
+;
+
+    comment.nickname = ([dic objectForKey:@"nickname"] != [NSNull null])&&([dic objectForKey:@"nickname"] !=nil) ? [dic objectForKey:@"nickname"] : @"";
+    
+    comment.commentStauts = ([dic objectForKey:@"commentStauts"] != [NSNull null])&&([dic objectForKey:@"commentStauts"] !=nil) ? [[dic objectForKey:@"commentStauts"] integerValue] : 0;
+    
+    
+    comment.commentfloorNum =([dic objectForKey:@"commentfloorNum"] != [NSNull null])&&([dic objectForKey:@"commentfloorNum"] !=nil) ? [[dic objectForKey:@"commentfloorNum"] integerValue] : 0;
+    
+    dict=[dic objectForKey:@"commentCreateTime"];
+    comment.commentCreateTime=([dict objectForKey:@"time"] != [NSNull null])&&([dict objectForKey:@"time"] !=nil) ? [dict objectForKey:@"time"] : @"";;
+    
+    
+    comment.replyUserId=([dic objectForKey:@"replyUserId"] != [NSNull null])&&([dic objectForKey:@"replyUserId"] !=nil) ? [dic objectForKey:@"replyUserId"] : @"";
+    
+    comment.replyFace=([dic objectForKey:@"replyFace"] != [NSNull null])&&([dic objectForKey:@"replyFace"] !=nil) ? [dic objectForKey:@"replyFace"] : @"";
+    
+    comment.replyNickName=([dic objectForKey:@"replyNickName"] != [NSNull null])&&([dic objectForKey:@"replyNickName"] !=nil) ? [dic objectForKey:@"replyNickName"] : @"";
+    
+    comment.rownum=([dic objectForKey:@"rownum"] != [NSNull null])&&([dic objectForKey:@"rownum"] !=nil) ? [[dic objectForKey:@"rownum"] integerValue] : 0;
+    
+    comment.commentFace=([dic objectForKey:@"commentFace"] != [NSNull null])&&([dic objectForKey:@"commentFace"] !=nil) ? [dic objectForKey:@"commentFace"] : @"";
+    
+    comment.commentNickName=([dic objectForKey:@"commentNickName"] != [NSNull null])&&([dic objectForKey:@"commentNickName"] !=nil) ? [dic objectForKey:@"commentNickName"] : @"";
+    
+    comment.commentTip=([dic objectForKey:@"commentTip"] != [NSNull null])&&([dic objectForKey:@"commentTip"] !=nil) ? [dic objectForKey:@"commentTip"] : @"";
+    
+    comment.discussId=([dic objectForKey:@"discussId"] != [NSNull null])&&([dic objectForKey:@"discussId"] !=nil) ? [[dic objectForKey:@"discussId"] integerValue] : 0;
+    
+    comment.replyCreateTime=([dic objectForKey:@"replyCreateTime"] != [NSNull null])&&([dic objectForKey:@"replyCreateTime"] !=nil) ? [dic objectForKey:@"replyCreateTime"] : @"";
+    
+    comment.replyStauts=([dic objectForKey:@"replyStauts"] != [NSNull null])&&([dic objectForKey:@"replyStauts"] !=nil) ? [[dic objectForKey:@"replyStauts"] integerValue] : 0;
+    
+    comment.commentUserId=([dic objectForKey:@"commentUserId"] != [NSNull null])&&([dic objectForKey:@"commentUserId"] !=nil) ? [[dic objectForKey:@"commentUserId"] integerValue] : 0;
+    
+    comment.replyFloorNum=([dic objectForKey:@"replyFloorNum"] != [NSNull null])&&([dic objectForKey:@"replyFloorNum"] !=nil) ? [[dic objectForKey:@"replyFloorNum"] integerValue]: 0;
+    comment.replyContentInfo=([dic objectForKey:@"replyContentInfo"] != [NSNull null])&&([dic objectForKey:@"replyContentInfo"] !=nil) ? [dic objectForKey:@"replyContentInfo"] : @"";
+    comment.commentContentInfo=([dic objectForKey:@"commentContentInfo"] != [NSNull null])&&([dic objectForKey:@"commentContentInfo"] !=nil) ? [dic objectForKey:@"commentContentInfo"] : @"";
+    
+    comment.commentImageName=([dic objectForKey:@"commentImageName"] != [NSNull null])&&([dic objectForKey:@"commentImageName"] !=nil) ? [dic objectForKey:@"commentImageName"] : @"";
+    
+      comment.face=([dic objectForKey:@"face"] != [NSNull null])&&([dic objectForKey:@"face"] !=nil) ? [dic objectForKey:@"face"] : @"";
+    
+      comment.replyContent=([dic objectForKey:@"replyContent"] != [NSNull null])&&([dic objectForKey:@"replyContent"] !=nil) ? [dic objectForKey:@"replyContent"] : @"";
+    
+        comment.commentNum=([dic objectForKey:@"commentNum"] != [NSNull null])&&([dic objectForKey:@"commentNum"] !=nil) ? [[dic objectForKey:@"commentNum"] integerValue] : 0;
+        comment.hitNum=([dic objectForKey:@"hitNum"] != [NSNull null])&&([dic objectForKey:@"hitNum"] !=nil) ? [[dic objectForKey:@"hitNum"] integerValue] : 0;
+        comment.replyId=([dic objectForKey:@"replyId"] != [NSNull null])&&([dic objectForKey:@"replyId"] !=nil) ? [[dic objectForKey:@"replyId"] integerValue] : 0;
+    
+            comment.publishId=([dic objectForKey:@"publishId"] != [NSNull null])&&([dic objectForKey:@"publishId"] !=nil) ? [[dic objectForKey:@"publishId"] integerValue] : 0;
+    
+    comment.commentContent = ([dic objectForKey:@"commentContent"] != [NSNull null])&&([dic objectForKey:@"commentContent"] !=nil) ? [dic objectForKey:@"commentContent"]  : @"";
+    comment.sortNumber = ([dic objectForKey:@"sortNumber"] != [NSNull null])&&([dic objectForKey:@"sortNumber"] !=nil) ? [[dic objectForKey:@"sortNumber"] integerValue] : 0;
+    
+    comment.imageName = ([dic objectForKey:@"imageName"] != [NSNull null])&&([dic objectForKey:@"imageName"] !=nil) ? [dic objectForKey:@"imageName"] : @"";
+    
+    NSMutableArray *commentListdataArray=[[NSMutableArray alloc] initWithCapacity:0];
+    comment.commentList = ([dic objectForKey:@"commentList"] != [NSNull null])&&([dic objectForKey:@"commentList"] !=nil) ? [dic objectForKey:@"commentList"]  : @"";
+    if([comment.commentList isKindOfClass:[NSArray class]]) {
+        for(id data in  comment.commentList){
+            [commentListdataArray addObject:[ActivityModel JsonParse:data ]];
+        }
+    }
+    comment.commentList=commentListdataArray;
+    
+    NSMutableArray *imageListdataArray=[[NSMutableArray alloc] initWithCapacity:0];
+    comment.imageList = ([dic objectForKey:@"imageList"] != [NSNull null])&&([dic objectForKey:@"imageList"] !=nil) ? [dic objectForKey:@"imageList"]  : @"";
+    if([comment.imageList isKindOfClass:[NSArray class]]) {
+        for(id data in  comment.imageList){
+            [imageListdataArray addObject:[ActivityModel JsonParse:data ]];
+        }
+    }
+    comment.imageList=imageListdataArray;
+    
+    comment.shopName = ([dic objectForKey:@"shopName"] != [NSNull null])&&([dic objectForKey:@"shopName"] !=nil) ? [dic objectForKey:@"shopName"]  : @"";
+ 
+
+    CGRect contentRect = [comment.commentContentInfo boundingRectWithSize:CGSizeMake(SCREEN_WIDTH-70, CGFLOAT_MAX) options:(NSStringDrawingUsesLineFragmentOrigin|NSStringDrawingUsesFontLeading)  attributes:[NSDictionary dictionaryWithObject:FONT_SIZE_12 forKey:NSFontAttributeName] context:nil];
+    
+    if (contentRect.size.height<30) {
+        comment.contentHeight=30;
+    }
+    else
+        comment.contentHeight+=contentRect.size.height+10;
+    
+    if (![comment.commentImageName isEqualToString:@""]) {
+        comment.imageHeight=244;
+    }
+    else
+        comment.imageHeight=0;
+    
+    
+    if (![comment.replyUserId isEqualToString:@""]) {
+        contentRect = [comment.replyContentInfo boundingRectWithSize:CGSizeMake(SCREEN_WIDTH-70, CGFLOAT_MAX) options:(NSStringDrawingUsesLineFragmentOrigin|NSStringDrawingUsesFontLeading)  attributes:[NSDictionary dictionaryWithObject:FONT_SIZE_12 forKey:NSFontAttributeName] context:nil];
+        if (contentRect.size.height<30) {
+            comment.replyContentHeight=90;
+        }
+        else
+            comment.replyContentHeight+=contentRect.size.height+70;
+    }
+    else
+        comment.replyContentHeight=0;
+    
+    return comment;
+}
+
+@end

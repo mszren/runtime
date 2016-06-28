@@ -1,0 +1,301 @@
+//
+//  HomeInfoController.m
+//  FamilysHelper
+//
+//  Created by zhouwengang on 15/6/17.
+//  Copyright (c) 2015年 FamilyTree. All rights reserved.
+//
+
+#import "HomeInfoController.h"
+#import "EGOTableView.h"
+#import "HomeService.h"
+#import "CommentCell.h"
+#import "MsgCommentModel.h"
+#import "MsgCell.h"
+
+@interface HomeInfoController () <EGOTableViewDelegate, UITableViewDataSource, UITableViewDelegate, UITextFieldDelegate> {
+    UIView* _bottomComentView;
+    CGFloat _currentChatBarHeight;
+    CGFloat _currentKeyBoardHeight;
+}
+@property (nonatomic, strong) EGOTableView* tableView;
+@property (nonatomic, strong) UIView* BottomView;
+@property (nonatomic, assign) BOOL refreshing;
+@property (nonatomic, strong) DataModel* dataModel;
+@property (nonatomic, assign) int height;
+
+@end
+
+@implementation HomeInfoController{
+    MBProgressHUD *_hud;
+    ASIHTTPRequest *_request;
+    ASIHTTPRequest *_replyRequest;
+    NSString *_flags;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self setWhiteNavBg];
+    [self initializeWhiteBackgroudView:@"详情"];
+    [self initializeMyView];
+    [self initializeBottomView];
+    //[_tableView launchRefreshing];
+    [self loadData:YES];
+    //增加监听，当键盘出现或改变时收出消息
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(keyboardWillShow:)
+                                                 name:UIKeyboardWillShowNotification
+                                               object:nil];
+}
+- (void)initializeMyView
+{
+    _tableView = [[EGOTableView alloc] initWithFrame:CGRectMake(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT - 48)];
+    _tableView.backgroundView = nil;
+    _tableView.dataSource = self;
+    _tableView.delegate = self;
+    _tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    _tableView.pullingDelegate = self;
+    _tableView.autoScrollToNextPage = NO;
+    [self.view addSubview:_tableView];
+    static NSString* identifier = @"CommunityCellIdentifier";
+    MsgCell* cell = [_tableView dequeueReusableCellWithIdentifier:identifier];
+    if (cell == nil) {
+        cell = [[[NSBundle mainBundle] loadNibNamed:@"MsgCell" owner:self options:nil] lastObject];
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        NSInteger from_type = 0;
+        cell.messageListner = self;
+        [cell initView:from_type];
+        [cell bindMsgModel:_msgModel type:_msgModel.type];
+    }
+    cell.frame = CGRectMake(0, 0, SCREEN_WIDTH, 240);
+    _tableView.tableHeaderView = cell; //把cell放在表头
+}
+
+- (void)initializeBottomView
+{
+    _bottomComentView = [[UIView alloc] init];
+    _bottomComentView.frame = CGRectMake(0, SCREEN_HEIGHT - 108, SCREEN_WIDTH, TopBarHeight);
+    _bottomComentView.backgroundColor = BGViewGray;
+
+    _tf_comment = [[UITextField alloc] initWithFrame:CGRectMake(10, 7, SCREEN_WIDTH - 90, 30)];
+    _tf_comment.backgroundColor = [UIColor whiteColor];
+    _tf_comment.placeholder = @"请输入评论...";
+    _tf_comment.layer.cornerRadius = 5.0;
+
+    [_bottomComentView addSubview:_tf_comment];
+    _btncomment = [UIButton buttonWithType:UIButtonTypeCustom];
+    _btncomment.frame = CGRectMake(SCREEN_WIDTH - 70, 7, 60, 30);
+    _btncomment.backgroundColor = HomeNavBarBgColor;
+    [_btncomment setTintColor:HomeNavBarTitleColor];
+    [_btncomment setTitle:@"发送" forState:UIControlStateNormal];
+    _btncomment.titleLabel.font = FONT_SIZE(12);
+    _btncomment.layer.cornerRadius = 5.0;
+    [_btncomment addTarget:self action:@selector(pubAction:) forControlEvents:UIControlEventTouchUpInside];
+    [_bottomComentView addSubview:_btncomment];
+    _tf_comment.delegate = self;
+    [self.view addSubview:_bottomComentView];
+}
+
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)loadData:(BOOL)iRefresh
+{
+    if(iRefresh){
+        _dataModel=[AppCache loadCache:[NSString stringWithFormat:@"%@_%ld_%ld",CACHE_MYHOME_PUBLISH,(long)_msgModel.lifeCircleId,(long)_msgModel.type]];
+    }
+    if(_dataModel&&iRefresh){
+        if (_dataModel.previousCursor == _dataModel.nextCursor) {
+            _tableView.reachedTheEnd = YES;
+        }
+        else {
+            _tableView.reachedTheEnd = NO;
+        }
+        [_tableView reloadData];
+        return;
+    }
+    if (_msgModel.type != 4) {
+        _msgModel.type = 5;
+    }
+    if (_request) {
+        [_request cancel];
+    }
+    _request = [[HomeService shareInstance] getNewReplyCommentList:_msgModel.lifeCircleId
+                                                   flag:_msgModel.type
+                                             nextCursor:_dataModel.nextCursor
+                                              onSuccess:^(DataModel* dataModel) {
+                                                  if (dataModel.code == 200) {
+                                                      if (_dataModel && !_refreshing) {
+                                                          NSMutableArray* list = _dataModel.data;
+                                                          [list addObjectsFromArray:dataModel.data];
+                                                          _dataModel.data = list;
+                                                          _dataModel.previousCursor = dataModel.previousCursor;
+                                                          _dataModel.nextCursor = dataModel.nextCursor;
+                                                      }
+                                                      else
+                                                          _dataModel = dataModel;
+                                                      
+                                                      [AppCache saveCache:[NSString stringWithFormat:@"%@_%ld_%ld",CACHE_MYHOME_PUBLISH,(long)_msgModel.lifeCircleId,(long)_msgModel.type] Data:_dataModel];
+
+                                                      if (_dataModel.previousCursor == _dataModel.nextCursor) {
+                                                          _tableView.reachedTheEnd = YES;
+                                                      }
+                                                      else {
+                                                          _tableView.reachedTheEnd = NO;
+                                                      }
+                                                      [_tableView reloadData];
+
+                                                  }
+                                                  else {
+                                                      if ((dataModel.code != 20000) && (dataModel.code != 20000) ) {
+                                                                                                                [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+                                                      }
+                                                      _tableView.reachedTheEnd = NO;
+                                                  }
+                                                  _hud.hidden = YES;
+                                                  [_tableView tableViewDidFinishedLoading];
+                                              }];
+}
+- (CGFloat)tableView:(UITableView*)tableView heightForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+
+    return 80;
+}
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView
+{
+    return 1;
+}
+- (NSInteger)tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section
+{
+    return ((NSArray*)_dataModel.data).count;
+}
+- (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath
+{
+
+    static NSString* identifier = @"CommentCellIdentifier";
+    CommentCell* cell = [tableView dequeueReusableCellWithIdentifier:identifier];
+    if (cell == nil) {
+        cell = [[[NSBundle mainBundle] loadNibNamed:@"CommentCell" owner:self options:nil] lastObject];
+        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        [cell initView];
+    }
+    NSArray* list = _dataModel.data;
+    if (list.count > indexPath.row) {
+        MsgCommentModel* model = [list objectAtIndex:indexPath.row];
+        [cell bindMsgModel:model];
+    }
+    return cell;
+}
+
+#pragma mark -
+#pragma mark UIScrollViewDelegate
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+    [_tableView tableViewDidScroll:scrollView];
+}
+- (void)scrollViewDidEndDragging:(UIScrollView*)scrollView willDecelerate:(BOOL)decelerate
+{
+    [_tableView tableViewDidEndDragging:scrollView];
+}
+
+#pragma mark -
+#pragma mark EGOTableViewDelegate
+- (void)pullingTableViewDidStartRefreshing:(EGOTableHeaderView*)tableView
+{
+
+    if (_dataModel) {
+        _dataModel.nextCursor = 0;
+        _dataModel.previousCursor = 0;
+    }
+    _refreshing = YES;
+    _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    [self loadData:NO];
+}
+
+- (void)pullingTableViewDidStartLoading:(EGOTableView*)tableView
+{
+    _refreshing = NO;
+    _hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    [self loadData:NO];
+}
+- (NSDate*)pullingTableViewRefreshingFinishedDate
+{
+    return [NSDate date];
+}
+- (NSDate*)pullingTableViewLoadingFinishedDate
+{
+    return [NSDate date];
+}
+//开始编辑输入框的时候，软键盘出现，执行此事件
+- (void)textFieldDidBeginEditing:(UITextField*)textField
+{
+}
+
+//当用户按下return键或者按回车键，keyboard消失
+- (BOOL)textFieldShouldReturn:(UITextField*)textField
+{
+    [textField resignFirstResponder];
+    return YES;
+}
+
+//输入框编辑完成以后，将视图恢复到原始状态
+- (void)textFieldDidEndEditing:(UITextField*)textField
+{
+    CGRect frame = _bottomComentView.frame;
+    _bottomComentView.frame = CGRectMake(0.0f, self.view.frame.size.height - frame.size.height, frame.size.width, frame.size.height);
+}
+
+//当键盘出现或改变时调用
+- (void)keyboardWillShow:(NSNotification*)aNotification
+{
+    //获取键盘的高度
+    NSDictionary* userInfo = [aNotification userInfo];
+    NSValue* aValue = [userInfo objectForKey:UIKeyboardFrameEndUserInfoKey];
+    CGRect keyboardRect = [aValue CGRectValue];
+    _height = keyboardRect.size.height;
+    CGRect frame = _bottomComentView.frame;
+    NSTimeInterval animationDuration = 0.30f;
+    [UIView beginAnimations:@"ResizeForKeyboard" context:nil];
+    [UIView setAnimationDuration:animationDuration];
+    _bottomComentView.frame = CGRectMake(0.0f, self.view.frame.size.height - _height - frame.size.height, frame.size.width, frame.size.height);
+    [UIView commitAnimations];
+}
+- (void)pubAction:(id)sender
+{
+    
+    if (_msgModel.type != 5) {
+        _flags = @"talk";
+    }
+    else
+        _flags = [NSString stringWithFormat:@"%ld", (long)_msgModel.type];
+    
+    NSString* content = _tf_comment.text;
+    if (_replyRequest) {
+        [_replyRequest cancel];
+    }
+    _replyRequest = [[HomeService shareInstance] replyNewComment:[CurrentAccount currentAccount].uid
+                                            Flag:_flags
+                                      comment_id:_msgModel.lifeCircleId
+                                         content:content
+                                       onSuccess:^(DataModel* dataModel) {
+                                           if (dataModel.code == 202) {
+
+                                               [ToastManager showToast:@"发布评论成功" withTime:Toast_Hide_TIME];
+                                               _dataModel.nextCursor = 0;
+                                               _dataModel.previousCursor = 0;
+                                               [((NSMutableArray*)_dataModel.data)removeAllObjects];
+                                               [self loadData:NO];
+                                               _tf_comment.text = @"";
+                                           }
+                                           else
+                                               [ToastManager showToast:dataModel.error withTime:Toast_Hide_TIME];
+
+                                       }];
+    [_tf_comment resignFirstResponder];
+}
+@end
